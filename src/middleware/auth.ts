@@ -1,73 +1,67 @@
 import { RequestHandler, Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import db from '../config/db';
-
-// กำหนด interface สำหรับ user ที่จะเพิ่มใน req
-interface User {
-  id: number;
-  email?: string; // ทำให้ email เป็น optional
-  role: string;
-}
+import { User } from '../types/index'; // Import User จาก types
 
 // ขยาย Request เพื่อเพิ่ม user
 interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: User; // แก้ไข syntax ให้ถูกต้อง
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET is not defined in environment variables');
+  throw new Error('JWT_SECRET is not defined in environment variables');
 }
 
 // ฟังก์ชันสำหรับดึงข้อมูลผู้ใช้จากฐานข้อมูล
 const findUserById = async (id: number): Promise<User | null> => {
-    try {
-        const [rows] = await db.query('SELECT id, email, role FROM users WHERE id = ?', [id]);
-        return (rows as any[])[0] as User | null;
-    } catch (error) {
-        console.error('Error in findUserById:', error);
-        return null;
-    }
+  try {
+    const [rows] = await db.query('SELECT id, email, role FROM users WHERE id = ?', [id]);
+    return (rows as any[])[0] as User | null;
+  } catch (error) {
+    console.error('Error in findUserById:', error);
+    return null;
+  }
 };
 
 // Middleware สำหรับการตรวจสอบ token
-export const authMiddleware: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-        res.status(401).json({ error: 'No token provided' });
-        return;
+export const authMiddleware: RequestHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    res.status(401).json({ error: 'No token provided' });
+    return;
+  }
+
+  try {
+    // Verify token และดึง payload
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: number; role: 'client' | 'admin' };
+    console.log('Decoded JWT:', decoded);
+
+    // ดึงข้อมูลผู้ใช้จากฐานข้อมูลเพื่อให้ได้ email
+    const user = await findUserById(decoded.id);
+    console.log('User from DB:', user);
+
+    if (!user) {
+      res.status(401).json({ error: 'User not found in database' });
+      return;
     }
 
-    try {
-        // Verify token และดึง payload
-        const decoded = jwt.verify(token, JWT_SECRET) as { id: number; role: string };
-        console.log('Decoded JWT:', decoded);
-
-        // ดึงข้อมูลผู้ใช้จากฐานข้อมูลเพื่อให้ได้ email
-        const user = await findUserById(decoded.id);
-        console.log('User from DB:', user);
-
-        if (!user) {
-            res.status(401).json({ error: 'User not found in database' });
-            return;
-        }
-
-        // เพิ่ม user ที่มี email (ถ้ามี) เข้าไปใน req
-        (req as AuthenticatedRequest).user = user;
-        next();
-    } catch (error: any) {
-        console.error('Error in authMiddleware:', error.message);
-        res.status(401).json({ error: 'Invalid token', details: error.message });
-        return;
-    }
+    // เพิ่ม user ที่มี email เข้าไปใน req
+    req.user = user;
+    next();
+  } catch (error: any) {
+    console.error('Error in authMiddleware:', error.message);
+    res.status(401).json({ error: 'Invalid token', details: error.message });
+    return;
+  }
 };
 
 // Middleware สำหรับตรวจสอบ admin
-export const adminMiddleware: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const user = (req as AuthenticatedRequest).user;
-    if (!user || user.role !== 'admin') {
-        res.status(403).json({ error: 'Access denied. Admins only.' });
-        return;
-    }
-    next();
+export const adminMiddleware: RequestHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  const user = req.user;
+  if (!user || user.role !== 'admin') {
+    res.status(403).json({ error: 'Access denied. Admins only.' });
+    return;
+  }
+  next();
 };
