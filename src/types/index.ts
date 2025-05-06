@@ -1,16 +1,16 @@
 export interface User {
-  id: number; // เปลี่ยนจาก string เป็น number ให้ตรงกับ auth.ts และ database
-  name?: string; // Optional เพื่อให้เข้ากับ auth.ts
-  email: string; // ยังคง required
-  password?: string; // Optional เพราะ auth.ts ไม่ใช้
+  id: number;
+  name?: string;
+  email?: string; // เปลี่ยนเป็น optional เพื่อให้เข้ากับ JWT payload
+  password?: string;
   role: 'client' | 'admin';
-  createdAt?: Date; // Optional เพราะ auth.ts ไม่ใช้
+  createdAt?: Date;
 }
 
 export interface Booking {
-  id: number; // เปลี่ยนจาก string เป็น number
-  userId: number; // เปลี่ยนจาก string เป็น number
-  carId: number; // เปลี่ยนจาก string เป็น number
+  id: number;
+  userId: number;
+  carId: number;
   startDate: Date;
   endDate: Date;
   status: 'pending' | 'confirmed' | 'canceled';

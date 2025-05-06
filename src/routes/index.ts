@@ -6,7 +6,7 @@ import { format, isValid, parseISO } from 'date-fns';
 import { register, login, getDashboardData } from '../controllers/authController';
 import { getCarById } from '../controllers/carController';
 import { sendContact, getContacts, replyContact, deleteContact } from '../controllers/contactController';
-import { User } from '../types/index'; // Import User จาก types
+import { User } from '../types/index';
 
 interface AuthenticatedRequest extends Request {
   user?: User;
@@ -75,9 +75,10 @@ router.get('/reviews', async (req: Request, res: Response): Promise<void> => {
 });
 
 // เพิ่มรีวิวใหม่
-router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/reviews', authMiddleware, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
   const { car_id, rating, comment } = req.body;
-  const user_id = req.user?.id;
+  const user_id = authReq.user?.id;
 
   if (!user_id) {
     res.status(401).json({ error: 'User not authenticated' });
@@ -113,11 +114,12 @@ router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: R
 });
 
 // แก้ไขรีวิว
-router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.put('/reviews/:id', authMiddleware, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
   const reviewId = parseInt(req.params.id);
   const { rating, comment } = req.body;
-  const user_id = req.user?.id;
-  const user_role = req.user?.role;
+  const user_id = authReq.user?.id;
+  const user_role = authReq.user?.role;
 
   if (!user_id) {
     res.status(401).json({ error: 'User not authenticated' });
@@ -159,10 +161,11 @@ router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res
 });
 
 // ลบรีวิว
-router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.delete('/reviews/:id', authMiddleware, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
   const reviewId = parseInt(req.params.id);
-  const user_id = req.user?.id;
-  const user_role = req.user?.role;
+  const user_id = authReq.user?.id;
+  const user_role = authReq.user?.role;
 
   if (!user_id) {
     res.status(401).json({ error: 'User not authenticated' });
@@ -191,8 +194,9 @@ router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, 
 });
 
 // ดึงข้อมูลการจองของผู้ใช้
-router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
-  const user_id = req.user?.id;
+router.get('/bookings/my-bookings', authMiddleware, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
+  const user_id = authReq.user?.id;
 
   if (!user_id) {
     res.status(401).json({ error: 'User not authenticated' });
@@ -222,9 +226,10 @@ router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedReq
 });
 
 // ลบการจอง
-router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.delete('/bookings/:id', authMiddleware, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
   const bookingId = parseInt(req.params.id);
-  const user_id = req.user?.id;
+  const user_id = authReq.user?.id;
 
   if (!user_id) {
     console.log('[DELETE /bookings/:id] No user_id found');
@@ -292,9 +297,10 @@ router.post('/auth/login', login);
 router.get('/auth/dashboard', authMiddleware, adminMiddleware, getDashboardData);
 
 // endpoint /bookings
-router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/bookings', authMiddleware, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
   const { carId, bookingDate, type, message } = req.body;
-  const userId = req.user?.id;
+  const userId = authReq.user?.id;
 
   if (!userId) {
     res.status(401).json({ error: 'User not authenticated' });
