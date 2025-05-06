@@ -1,5 +1,6 @@
 import { RequestHandler, Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import db from '../config/db'; // นำเข้า db เพื่อ query ข้อมูลผู้ใช้
 
 // กำหนด interface สำหรับ user ที่จะเพิ่มใน req
 interface User {
@@ -18,7 +19,13 @@ if (!JWT_SECRET) {
     throw new Error('JWT_SECRET is not defined in environment variables');
 }
 
-// ใช้ async เพื่อให้ TypeScript ยอมรับ Promise<void>
+// ฟังก์ชันสำหรับดึงข้อมูลผู้ใช้จากฐานข้อมูล
+const findUserById = async (id: number): Promise<User | null> => {
+    const [rows] = await db.query('SELECT id, email, role FROM users WHERE id = ?', [id]);
+    return (rows as any[])[0] as User | null;
+};
+
+// Middleware สำหรับการตรวจสอบ token
 export const authMiddleware: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
@@ -27,8 +34,17 @@ export const authMiddleware: RequestHandler = async (req: Request, res: Response
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET) as User;
-        (req as AuthenticatedRequest).user = decoded;
+        // Verify token และดึง payload
+        const decoded = jwt.verify(token, JWT_SECRET) as { id: number; role: string };
+        // ดึงข้อมูลผู้ใช้จากฐานข้อมูลเพื่อให้ได้ email
+        const user = await findUserById(decoded.id);
+        if (!user) {
+            res.status(401).json({ error: 'User not found' });
+            return;
+        }
+
+        // เพิ่ม user ที่มี email ครบถ้วนเข้าไปใน req
+        (req as AuthenticatedRequest).user = user;
         next();
     } catch (error: any) {
         console.error('Error in authMiddleware:', error);
@@ -37,7 +53,7 @@ export const authMiddleware: RequestHandler = async (req: Request, res: Response
     }
 };
 
-// ใช้ async เพื่อให้ TypeScript ยอมรับ Promise<void>
+// Middleware สำหรับตรวจสอบ admin
 export const adminMiddleware: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const user = (req as AuthenticatedRequest).user;
     if (!user || user.role !== 'admin') {

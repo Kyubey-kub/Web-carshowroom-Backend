@@ -20,7 +20,7 @@ interface AuthenticatedRequest extends Request {
 const router = Router();
 
 // ดึงข้อมูลรถทั้งหมด
-router.get('/cars', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/cars', async (req: Request, res: Response): Promise<void> => {
     try {
         const [cars] = await db.query<RowDataPacket[]>(
             `SELECT cars.*, models.name AS model_name, brands.name AS brand_name 
@@ -36,7 +36,7 @@ router.get('/cars', async (req: Request, res: Response, next: NextFunction): Pro
 });
 
 // ดึงข้อมูลยี่ห้อทั้งหมด
-router.get('/brands', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/brands', async (req: Request, res: Response): Promise<void> => {
     try {
         const [brands] = await db.query<RowDataPacket[]>('SELECT name FROM brands');
         res.status(200).json(brands.map((brand: any) => brand.name));
@@ -47,7 +47,7 @@ router.get('/brands', async (req: Request, res: Response, next: NextFunction): P
 });
 
 // ดึงข้อมูลปีทั้งหมด
-router.get('/years', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/years', async (req: Request, res: Response): Promise<void> => {
     try {
         const [years] = await db.query<RowDataPacket[]>('SELECT DISTINCT year FROM cars');
         res.status(200).json(years.map((year: any) => year.year.toString()));
@@ -61,7 +61,7 @@ router.get('/years', async (req: Request, res: Response, next: NextFunction): Pr
 router.get('/cars/:id', getCarById);
 
 // ดึงข้อมูลรีวิวทั้งหมด
-router.get('/reviews', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/reviews', async (req: Request, res: Response): Promise<void> => {
     try {
         const [reviews] = await db.query<RowDataPacket[]>(
             `SELECT reviews.*, users.email AS user_email, 
@@ -80,7 +80,7 @@ router.get('/reviews', async (req: Request, res: Response, next: NextFunction): 
 });
 
 // เพิ่มรีวิวใหม่
-router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const { car_id, rating, comment } = req.body;
     const user_id = req.user?.id;
 
@@ -118,7 +118,7 @@ router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: R
 });
 
 // แก้ไขรีวิว
-router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const reviewId = parseInt(req.params.id);
     const { rating, comment } = req.body;
     const user_id = req.user?.id;
@@ -164,7 +164,7 @@ router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res
 });
 
 // ลบรีวิว
-router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const reviewId = parseInt(req.params.id);
     const user_id = req.user?.id;
     const user_role = req.user?.role;
@@ -196,7 +196,7 @@ router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, 
 });
 
 // ดึงข้อมูลการจองของผู้ใช้
-router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const user_id = req.user?.id;
 
     if (!user_id) {
@@ -227,7 +227,7 @@ router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedReq
 });
 
 // ลบการจอง
-router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const bookingId = parseInt(req.params.id);
     const user_id = req.user?.id;
 
@@ -297,7 +297,7 @@ router.post('/auth/login', login);
 router.get('/auth/dashboard', authMiddleware, adminMiddleware, getDashboardData);
 
 // endpoint /bookings
-router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const { carId, bookingDate, type, message } = req.body;
     const userId = req.user?.id;
 
