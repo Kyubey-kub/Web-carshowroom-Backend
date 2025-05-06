@@ -1,11 +1,11 @@
 import { RequestHandler, Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import db from '../config/db'; // นำเข้า db เพื่อ query ข้อมูลผู้ใช้
+import db from '../config/db';
 
 // กำหนด interface สำหรับ user ที่จะเพิ่มใน req
 interface User {
   id: number;
-  email: string;
+  email?: string; // ทำให้ email เป็น optional
   role: string;
 }
 
@@ -21,8 +21,13 @@ if (!JWT_SECRET) {
 
 // ฟังก์ชันสำหรับดึงข้อมูลผู้ใช้จากฐานข้อมูล
 const findUserById = async (id: number): Promise<User | null> => {
-    const [rows] = await db.query('SELECT id, email, role FROM users WHERE id = ?', [id]);
-    return (rows as any[])[0] as User | null;
+    try {
+        const [rows] = await db.query('SELECT id, email, role FROM users WHERE id = ?', [id]);
+        return (rows as any[])[0] as User | null;
+    } catch (error) {
+        console.error('Error in findUserById:', error);
+        return null;
+    }
 };
 
 // Middleware สำหรับการตรวจสอบ token
@@ -36,19 +41,23 @@ export const authMiddleware: RequestHandler = async (req: Request, res: Response
     try {
         // Verify token และดึง payload
         const decoded = jwt.verify(token, JWT_SECRET) as { id: number; role: string };
+        console.log('Decoded JWT:', decoded);
+
         // ดึงข้อมูลผู้ใช้จากฐานข้อมูลเพื่อให้ได้ email
         const user = await findUserById(decoded.id);
+        console.log('User from DB:', user);
+
         if (!user) {
-            res.status(401).json({ error: 'User not found' });
+            res.status(401).json({ error: 'User not found in database' });
             return;
         }
 
-        // เพิ่ม user ที่มี email ครบถ้วนเข้าไปใน req
+        // เพิ่ม user ที่มี email (ถ้ามี) เข้าไปใน req
         (req as AuthenticatedRequest).user = user;
         next();
     } catch (error: any) {
-        console.error('Error in authMiddleware:', error);
-        res.status(401).json({ error: 'Invalid token' });
+        console.error('Error in authMiddleware:', error.message);
+        res.status(401).json({ error: 'Invalid token', details: error.message });
         return;
     }
 };
