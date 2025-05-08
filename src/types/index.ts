@@ -7,6 +7,12 @@ export interface User {
   created_at?: Date;
 }
 
+export interface JwtPayload {
+  id: number;
+  email: string;
+  role: 'client' | 'admin';
+}
+
 export interface Car {
   id?: number;
   modelId: number;
@@ -35,13 +41,15 @@ export interface Booking {
 }
 
 export interface Contact {
-  id: string;
+  id?: number;
+  user_id?: number;
   name: string;
   email: string;
-  subject: string;
+  subject?: string;
   message: string;
-  status: 'pending' | 'replied';
-  timestamp: Date;
+  file_name?: string;
+  status?: 'pending' | 'replied';
+  timestamp?: Date;
 }
 
 export interface DashboardData {
@@ -49,10 +57,4 @@ export interface DashboardData {
   loginData: { date: string; count: number }[];
   totalRegisters: number;
   totalLogins: number;
-}
-
-export interface JwtPayload {
-  id: number;
-  email: string;
-  role: 'client' | 'admin';
 }
