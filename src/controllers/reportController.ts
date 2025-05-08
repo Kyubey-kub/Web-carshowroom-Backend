@@ -5,7 +5,7 @@ import { User, JwtPayload } from '../types';
 
 // ปรับ AuthenticatedRequest
 interface AuthenticatedRequest extends Request {
-  user?: (User | JwtPayload) & { id: number; email: string; role: string };
+  user?: User | JwtPayload;
 }
 
 export const getUserActivity = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {

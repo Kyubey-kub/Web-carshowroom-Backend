@@ -1,11 +1,11 @@
-import { RequestHandler, Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import db from '../config/db';
 import { User, JwtPayload } from '../types';
 
-// ปรับ AuthenticatedRequest ให้รองรับ User และ JwtPayload
+// ปรับ AuthenticatedRequest
 interface AuthenticatedRequest extends Request {
-  user?: (User | JwtPayload) & { id: number; email: string; role: 'client' | 'admin' };
+  user?: User | JwtPayload;
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -25,7 +25,7 @@ const findUserById = async (id: number): Promise<User | null> => {
 };
 
 // Middleware สำหรับการตรวจสอบ token
-export const authMiddleware: RequestHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const authMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) {
     res.status(401).json({ error: 'No token provided' });
@@ -33,11 +33,9 @@ export const authMiddleware: RequestHandler = async (req: AuthenticatedRequest, 
   }
 
   try {
-    // Verify token และดึง payload
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
     console.log('Decoded JWT:', decoded);
 
-    // ดึงข้อมูลผู้ใช้จากฐานข้อมูลเพื่อให้ได้ข้อมูลครบถ้วน
     const user = await findUserById(decoded.id);
     console.log('User from DB:', user);
 
@@ -46,8 +44,7 @@ export const authMiddleware: RequestHandler = async (req: AuthenticatedRequest, 
       return;
     }
 
-    // เพิ่ม user เข้าไปใน req
-    req.user = { ...user, ...decoded };
+    req.user = user;
     next();
   } catch (error: any) {
     console.error('Error in authMiddleware:', error.message);
@@ -57,9 +54,8 @@ export const authMiddleware: RequestHandler = async (req: AuthenticatedRequest, 
 };
 
 // Middleware สำหรับตรวจสอบ admin
-export const adminMiddleware: RequestHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
-  const user = req.user;
-  if (!user || user.role !== 'admin') {
+export const adminMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  if (!req.user || req.user.role !== 'admin') {
     res.status(403).json({ error: 'Access denied. Admins only.' });
     return;
   }

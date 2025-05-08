@@ -11,7 +11,7 @@ import { User, JwtPayload } from '../types';
 
 // ปรับ AuthenticatedRequest
 interface AuthenticatedRequest extends Request {
-  user?: (User | JwtPayload) & { id: number; email: string; role: string };
+  user?: User | JwtPayload;
 }
 
 const router = Router();

@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt, { SignOptions, JwtPayload } from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
-import { DashboardData, User } from '../types';
+import { DashboardData, User, JwtPayload } from '../types';
 
-// ปรับ AuthenticatedRequest ให้รองรับ User และ JwtPayload
+// ปรับ AuthenticatedRequest
 interface AuthenticatedRequest extends Request {
-  user?: (User | JwtPayload) & { id: number; email: string; role: string };
+  user?: User | JwtPayload;
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
