@@ -6,11 +6,11 @@ import { format, isValid, parseISO } from 'date-fns';
 import { register, login, getDashboardData } from '../controllers/authController';
 import { getCarById } from '../controllers/carController';
 import { sendContact, getContacts, replyContact, deleteContact } from '../controllers/contactController';
-import { getUserActivity, getRegistrationTrends } from '../controllers/reportController'; // เพิ่ม import
-import { User } from '../types/index';
+import { getUserActivity, getRegistrationTrends } from '../controllers/reportController';
+import { User, JwtPayload } from '../types/index';
 
 interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: User & JwtPayload;
 }
 
 const router = Router();

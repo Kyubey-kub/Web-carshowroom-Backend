@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
-import { User } from '../types';
+import { User, JwtPayload } from '../types';
 
 interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: User & JwtPayload;
 }
 
 export const getUserActivity = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {

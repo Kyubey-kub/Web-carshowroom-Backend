@@ -2,10 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
 import bcrypt from 'bcryptjs';
-import { User } from '../types/index';
+import { User, JwtPayload } from '../types/index';
 
 interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: User & JwtPayload;
 }
 
 export const getUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {

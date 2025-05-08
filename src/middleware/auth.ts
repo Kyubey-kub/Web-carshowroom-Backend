@@ -1,11 +1,11 @@
 import { RequestHandler, Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import db from '../config/db';
-import { User } from '../types/index';
+import { User, JwtPayload as CustomJwtPayload } from '../types/index';
 
 // ขยาย Request เพื่อเพิ่ม user
 interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: User & CustomJwtPayload;
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -34,7 +34,7 @@ export const authMiddleware: RequestHandler = async (req: AuthenticatedRequest, 
 
   try {
     // Verify token และดึง payload
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; role: 'client' | 'admin' };
+    const decoded = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
     console.log('Decoded JWT:', decoded);
 
     // ดึงข้อมูลผู้ใช้จากฐานข้อมูลเพื่อให้ได้ข้อมูลครบถ้วน
@@ -47,7 +47,7 @@ export const authMiddleware: RequestHandler = async (req: AuthenticatedRequest, 
     }
 
     // เพิ่ม user เข้าไปใน req
-    req.user = user;
+    req.user = { ...user, ...decoded };
     next();
   } catch (error: any) {
     console.error('Error in authMiddleware:', error.message);

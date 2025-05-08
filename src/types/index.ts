@@ -1,20 +1,38 @@
 export interface User {
   id: number;
   name?: string;
-  email: string; // ทำให้ email เป็น required
+  username?: string;
+  email: string;
   password?: string;
   role: 'client' | 'admin';
-  created_at?: Date; // เปลี่ยนเป็น created_at ให้ตรงกับ database
+  created_at?: Date;
+}
+
+export interface Car {
+  id?: number;
+  modelId: number;
+  year: number;
+  price: number;
+  description: string;
+  imageUrl: string;
+  model3dUrl: string;
+  status: 'available' | 'sold' | 'reserved';
+  color?: string;
+  mileage?: number;
+  fuelType?: 'petrol' | 'diesel' | 'electric' | 'hybrid';
 }
 
 export interface Booking {
-  id: number;
+  id?: number;
   userId: number;
   carId: number;
-  startDate: Date;
-  endDate: Date;
-  status: 'pending' | 'confirmed' | 'canceled';
-  createdAt: Date;
+  startDate?: Date;
+  endDate?: Date;
+  bookingDate?: string;
+  status: 'pending' | 'confirmed' | 'canceled' | 'approved' | 'rejected';
+  createdAt?: Date;
+  type?: 'test_drive' | 'inquiry';
+  message?: string;
 }
 
 export interface Contact {
@@ -32,4 +50,11 @@ export interface DashboardData {
   loginData: { date: string; count: number }[];
   totalRegisters: number;
   totalLogins: number;
+}
+
+// JWT Payload Interface
+export interface JwtPayload {
+  id: number;
+  email: string;
+  role: 'client' | 'admin';
 }

@@ -3,11 +3,11 @@ import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
-import { DashboardData, User } from '../types';
+import { DashboardData, User, JwtPayload } from '../types';
 
 // ขยาย Request เพื่อเพิ่ม user
 interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: User & JwtPayload;
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -117,6 +117,10 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     }
 
     const user = users[0];
+    if (!user.password) {
+      res.status(500).json({ error: 'User password is not defined' });
+      return;
+    }
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
