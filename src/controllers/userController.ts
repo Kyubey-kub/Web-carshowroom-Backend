@@ -15,7 +15,6 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction):
       'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC'
     );
 
-    // ดึงข้อมูลการล็อกอินล่าสุดของแต่ละผู้ใช้
     const [lastLogins] = await db.query<RowDataPacket[]>(
       'SELECT user_id, MAX(login_at) as last_login FROM login_logs GROUP BY user_id'
     );

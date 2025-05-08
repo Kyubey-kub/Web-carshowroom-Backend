@@ -1,13 +1,20 @@
-import { RequestHandler, Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
+import { User } from '../types';
 
 interface AuthenticatedRequest extends Request {
-    user?: { id: number; email: string; role: string };
+    user?: User;
 }
 
-export const getUserActivity: RequestHandler = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const getUserActivity = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const authReq = req as AuthenticatedRequest;
     try {
+        if (!authReq.user || authReq.user.role !== 'admin') {
+            res.status(403).json({ error: 'Access denied. Admins only.' });
+            return;
+        }
+
         const [logs] = await db.query<RowDataPacket[]>(
             "SELECT DATE(login_at) as date, COUNT(*) as count " +
             "FROM login_logs " +
@@ -24,8 +31,14 @@ export const getUserActivity: RequestHandler = async (req: AuthenticatedRequest,
     }
 };
 
-export const getRegistrationTrends: RequestHandler = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const getRegistrationTrends = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const authReq = req as AuthenticatedRequest;
     try {
+        if (!authReq.user || authReq.user.role !== 'admin') {
+            res.status(403).json({ error: 'Access denied. Admins only.' });
+            return;
+        }
+
         const [trends] = await db.query<RowDataPacket[]>(
             "SELECT DATE_FORMAT(created_at, '%Y-%m') as date, COUNT(*) as count " +
             "FROM users " +

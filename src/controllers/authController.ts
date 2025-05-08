@@ -1,4 +1,4 @@
-import { RequestHandler, Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import db from '../config/db';
@@ -37,7 +37,7 @@ function parseExpiresIn(value: string): number {
     }
 }
 
-export const register: RequestHandler = async (req: Request, res: Response): Promise<void> => {
+export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const { email, password, role, name } = req.body;
 
     if (!email || !password || !name) {
@@ -97,7 +97,7 @@ export const register: RequestHandler = async (req: Request, res: Response): Pro
     }
 };
 
-export const login: RequestHandler = async (req: Request, res: Response): Promise<void> => {
+export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -143,9 +143,10 @@ export const login: RequestHandler = async (req: Request, res: Response): Promis
     }
 };
 
-export const getDashboardData: RequestHandler = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const getDashboardData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const authReq = req as AuthenticatedRequest;
     try {
-        console.log('Fetching dashboard data for user:', req.user);
+        console.log('Fetching dashboard data for user:', authReq.user);
         const [registerData] = await db.query<RowDataPacket[]>(
             "SELECT DATE(created_at) as date, COUNT(*) as count FROM users WHERE role = 'client' GROUP BY DATE(created_at) ORDER BY date DESC LIMIT 7"
         );
@@ -177,7 +178,8 @@ export const getDashboardData: RequestHandler = async (req: AuthenticatedRequest
     }
 };
 
-export const getRecentActivity: RequestHandler = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const getRecentActivity = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const authReq = req as AuthenticatedRequest;
     try {
         const [logs] = await db.query<RowDataPacket[]>(
             'SELECT users.name, login_logs.role, login_logs.login_at ' +
