@@ -1,10 +1,10 @@
 export interface User {
   id: number;
   name?: string;
-  email?: string; // เปลี่ยนเป็น optional เพื่อให้เข้ากับ JWT payload
+  email: string; // ทำให้ email เป็น required
   password?: string;
   role: 'client' | 'admin';
-  createdAt?: Date;
+  created_at?: Date; // เปลี่ยนเป็น created_at ให้ตรงกับ database
 }
 
 export interface Booking {
@@ -25,4 +25,11 @@ export interface Contact {
   message: string;
   status: 'pending' | 'replied';
   timestamp: Date;
+}
+
+export interface DashboardData {
+  registerData: { date: string; count: number }[];
+  loginData: { date: string; count: number }[];
+  totalRegisters: number;
+  totalLogins: number;
 }

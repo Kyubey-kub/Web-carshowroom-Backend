@@ -6,10 +6,11 @@ import { format, isValid, parseISO } from 'date-fns';
 import { register, login, getDashboardData } from '../controllers/authController';
 import { getCarById } from '../controllers/carController';
 import { sendContact, getContacts, replyContact, deleteContact } from '../controllers/contactController';
+import { getUserActivity, getRegistrationTrends } from '../controllers/reportController'; // เพิ่ม import
 import { User } from '../types/index';
 
 interface AuthenticatedRequest extends Request {
-  user?: Omit<User, 'email'> & { email?: string };
+  user?: User;
 }
 
 const router = Router();
@@ -327,5 +328,9 @@ router.post('/contacts', authMiddleware, sendContact);
 router.get('/contacts', authMiddleware, adminMiddleware, getContacts);
 router.post('/contacts/:id/reply', authMiddleware, adminMiddleware, replyContact);
 router.delete('/contacts/:id', authMiddleware, adminMiddleware, deleteContact);
+
+// เพิ่ม routes สำหรับ reports
+router.get('/reports/user-activity', authMiddleware, adminMiddleware, getUserActivity);
+router.get('/reports/registration-trends', authMiddleware, adminMiddleware, getRegistrationTrends);
 
 export default router;

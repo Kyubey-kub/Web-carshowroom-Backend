@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import { User } from '../types/index';
 
 interface AuthenticatedRequest extends Request {
-  user?: Omit<User, 'email'> & { email?: string };
+  user?: User;
 }
 
 export const getUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {

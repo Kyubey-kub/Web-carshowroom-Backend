@@ -5,7 +5,7 @@ import { User } from '../types/index';
 
 // ขยาย Request เพื่อเพิ่ม user
 interface AuthenticatedRequest extends Request {
-  user?: Omit<User, 'email'> & { email?: string };
+  user?: User;
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -16,7 +16,7 @@ if (!JWT_SECRET) {
 // ฟังก์ชันสำหรับดึงข้อมูลผู้ใช้จากฐานข้อมูล
 const findUserById = async (id: number): Promise<User | null> => {
   try {
-    const [rows] = await db.query('SELECT id, email, role FROM users WHERE id = ?', [id]);
+    const [rows] = await db.query('SELECT id, name, email, role, created_at FROM users WHERE id = ?', [id]);
     return (rows as any[])[0] as User | null;
   } catch (error) {
     console.error('Error in findUserById:', error);
@@ -34,10 +34,10 @@ export const authMiddleware: RequestHandler = async (req: AuthenticatedRequest, 
 
   try {
     // Verify token และดึง payload
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: number; role: 'client' | 'admin'; email?: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; role: 'client' | 'admin' };
     console.log('Decoded JWT:', decoded);
 
-    // ดึงข้อมูลผู้ใช้จากฐานข้อมูลเพื่อให้ได้ email (ถ้ามี)
+    // ดึงข้อมูลผู้ใช้จากฐานข้อมูลเพื่อให้ได้ข้อมูลครบถ้วน
     const user = await findUserById(decoded.id);
     console.log('User from DB:', user);
 
