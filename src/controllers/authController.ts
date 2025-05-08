@@ -7,7 +7,7 @@ import { DashboardData, User } from '../types';
 
 // ขยาย Request เพื่อเพิ่ม user
 interface AuthenticatedRequest extends Request {
-    user?: User;
+    user?: Omit<User, 'email'> & { email?: string };
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -143,10 +143,14 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     }
 };
 
-export const getDashboardData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const authReq = req as AuthenticatedRequest;
+export const getDashboardData = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+    }
+
     try {
-        console.log('Fetching dashboard data for user:', authReq.user);
+        console.log('Fetching dashboard data for user:', req.user);
         const [registerData] = await db.query<RowDataPacket[]>(
             "SELECT DATE(created_at) as date, COUNT(*) as count FROM users WHERE role = 'client' GROUP BY DATE(created_at) ORDER BY date DESC LIMIT 7"
         );
@@ -178,8 +182,7 @@ export const getDashboardData = async (req: Request, res: Response, next: NextFu
     }
 };
 
-export const getRecentActivity = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const authReq = req as AuthenticatedRequest;
+export const getRecentActivity = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
         const [logs] = await db.query<RowDataPacket[]>(
             'SELECT users.name, login_logs.role, login_logs.login_at ' +

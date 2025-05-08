@@ -5,7 +5,7 @@ import { User } from '../types/index';
 
 // ขยาย Request เพื่อเพิ่ม user
 interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: Omit<User, 'email'> & { email?: string };
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;

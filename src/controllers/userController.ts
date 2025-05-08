@@ -5,11 +5,15 @@ import bcrypt from 'bcryptjs';
 import { User } from '../types/index';
 
 interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: Omit<User, 'email'> & { email?: string };
 }
 
-export const getUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const authReq = req as AuthenticatedRequest;
+export const getUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
   try {
     const [users] = await db.query<RowDataPacket[]>(
       'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC'
@@ -37,12 +41,16 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction):
   }
 };
 
-export const deleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const authReq = req as AuthenticatedRequest;
+export const deleteUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
   try {
     const { id } = req.params;
 
-    if (authReq.user && authReq.user.id === parseInt(id)) {
+    if (req.user.id === parseInt(id)) {
       res.status(400).json({ error: 'Cannot delete your own account' });
       return;
     }
@@ -67,7 +75,7 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-export const getAdminEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getAdminEmail = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [admins] = await db.query<RowDataPacket[]>(
       'SELECT email FROM users WHERE role = "admin" LIMIT 1'
@@ -85,7 +93,12 @@ export const getAdminEmail = async (req: Request, res: Response, next: NextFunct
   }
 };
 
-export const updateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const updateUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
   try {
     const { id } = req.params;
     const { name, email, role, password } = req.body;
@@ -122,7 +135,12 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-export const addUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const addUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
   try {
     const { name, email, password, role } = req.body;
 

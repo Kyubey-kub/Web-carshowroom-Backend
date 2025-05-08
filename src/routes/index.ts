@@ -9,7 +9,7 @@ import { sendContact, getContacts, replyContact, deleteContact } from '../contro
 import { User } from '../types/index';
 
 interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: Omit<User, 'email'> & { email?: string };
 }
 
 const router = Router();
@@ -69,15 +69,14 @@ router.get('/reviews', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-router.post('/reviews', authMiddleware, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const authReq = req as AuthenticatedRequest;
-  const { car_id, rating, comment } = req.body;
-  const user_id = authReq.user?.id;
-
-  if (!user_id) {
+router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
   }
+
+  const { car_id, rating, comment } = req.body;
+  const user_id = req.user.id;
 
   if (!car_id || !rating || !comment) {
     res.status(400).json({ error: 'Car ID, rating, and comment are required' });
@@ -107,17 +106,16 @@ router.post('/reviews', authMiddleware, async (req: Request, res: Response, next
   }
 });
 
-router.put('/reviews/:id', authMiddleware, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const authReq = req as AuthenticatedRequest;
-  const reviewId = parseInt(req.params.id);
-  const { rating, comment } = req.body;
-  const user_id = authReq.user?.id;
-  const user_role = authReq.user?.role;
-
-  if (!user_id) {
+router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
   }
+
+  const reviewId = parseInt(req.params.id);
+  const { rating, comment } = req.body;
+  const user_id = req.user.id;
+  const user_role = req.user.role;
 
   if (!rating || !comment) {
     res.status(400).json({ error: 'Rating and comment are required' });
@@ -153,16 +151,15 @@ router.put('/reviews/:id', authMiddleware, async (req: Request, res: Response, n
   }
 });
 
-router.delete('/reviews/:id', authMiddleware, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const authReq = req as AuthenticatedRequest;
-  const reviewId = parseInt(req.params.id);
-  const user_id = authReq.user?.id;
-  const user_role = authReq.user?.role;
-
-  if (!user_id) {
+router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
   }
+
+  const reviewId = parseInt(req.params.id);
+  const user_id = req.user.id;
+  const user_role = req.user.role;
 
   try {
     const [reviews] = await db.query<RowDataPacket[]>('SELECT * FROM reviews WHERE id = ?', [reviewId]);
@@ -185,14 +182,13 @@ router.delete('/reviews/:id', authMiddleware, async (req: Request, res: Response
   }
 });
 
-router.get('/bookings/my-bookings', authMiddleware, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const authReq = req as AuthenticatedRequest;
-  const user_id = authReq.user?.id;
-
-  if (!user_id) {
+router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
   }
+
+  const user_id = req.user.id;
 
   try {
     const [bookings] = await db.query<RowDataPacket[]>(
@@ -216,16 +212,15 @@ router.get('/bookings/my-bookings', authMiddleware, async (req: Request, res: Re
   }
 });
 
-router.delete('/bookings/:id', authMiddleware, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const authReq = req as AuthenticatedRequest;
-  const bookingId = parseInt(req.params.id);
-  const user_id = authReq.user?.id;
-
-  if (!user_id) {
+router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  if (!req.user) {
     console.log('[DELETE /bookings/:id] No user_id found');
     res.status(401).json({ error: 'User not authenticated' });
     return;
   }
+
+  const bookingId = parseInt(req.params.id);
+  const user_id = req.user.id;
 
   try {
     console.log(`[DELETE /bookings/:id] Deleting booking ID: ${bookingId} for user ID: ${user_id}`);
@@ -283,15 +278,14 @@ router.post('/auth/login', login);
 
 router.get('/auth/dashboard', authMiddleware, adminMiddleware, getDashboardData);
 
-router.post('/bookings', authMiddleware, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const authReq = req as AuthenticatedRequest;
-  const { carId, bookingDate, type, message } = req.body;
-  const userId = authReq.user?.id;
-
-  if (!userId) {
+router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
   }
+
+  const { carId, bookingDate, type, message } = req.body;
+  const userId = req.user.id;
 
   if (!carId || !bookingDate || !type) {
     res.status(400).json({ error: 'Car ID, booking date, and type are required' });
