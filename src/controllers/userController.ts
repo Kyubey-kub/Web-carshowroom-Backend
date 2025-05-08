@@ -39,7 +39,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
   } catch (error: any) {
     console.error('Error in getUsers:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
-    return;
+    next(error);
   }
 };
 
@@ -74,7 +74,7 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response, next:
   } catch (error: any) {
     console.error('Error in deleteUser:', error);
     res.status(500).json({ error: 'Failed to delete user' });
-    return;
+    next(error);
   }
 };
 
@@ -93,7 +93,7 @@ export const getAdminEmail = async (req: AuthenticatedRequest, res: Response, ne
   } catch (error: any) {
     console.error('Error in getAdminEmail:', error);
     res.status(500).json({ error: 'Failed to fetch admin email' });
-    return;
+    next(error);
   }
 };
 
@@ -136,7 +136,7 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
   } catch (error: any) {
     console.error('Error in updateUser:', error);
     res.status(500).json({ error: 'Failed to update user' });
-    return;
+    next(error);
   }
 };
 
@@ -175,6 +175,6 @@ export const addUser = async (req: AuthenticatedRequest, res: Response, next: Ne
   } catch (error: any) {
     console.error('Error in addUser:', error);
     res.status(500).json({ error: 'Failed to add user' });
-    return;
+    next(error);
   }
 };

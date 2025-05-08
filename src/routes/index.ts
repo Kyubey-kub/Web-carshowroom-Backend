@@ -16,7 +16,7 @@ interface AuthenticatedRequest extends Request {
 
 const router = Router();
 
-router.get('/cars', async (req: Request, res: Response): Promise<void> => {
+router.get('/cars', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [cars] = await db.query<RowDataPacket[]>(
       `SELECT cars.*, models.name AS model_name, brands.name AS brand_name 
@@ -28,32 +28,35 @@ router.get('/cars', async (req: Request, res: Response): Promise<void> => {
   } catch (error: any) {
     console.error('[GET /cars] Error:', error.message);
     res.status(500).json({ error: 'Failed to fetch cars', details: error.message });
+    next(error);
   }
 });
 
-router.get('/brands', async (req: Request, res: Response): Promise<void> => {
+router.get('/brands', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [brands] = await db.query<RowDataPacket[]>('SELECT name FROM brands');
     res.status(200).json(brands.map((brand: any) => brand.name));
   } catch (error: any) {
     console.error('[GET /brands] Error:', error.message);
     res.status(500).json({ error: 'Failed to fetch brands', details: error.message });
+    next(error);
   }
 });
 
-router.get('/years', async (req: Request, res: Response): Promise<void> => {
+router.get('/years', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [years] = await db.query<RowDataPacket[]>('SELECT DISTINCT year FROM cars');
     res.status(200).json(years.map((year: any) => year.year.toString()));
   } catch (error: any) {
     console.error('[GET /years] Error:', error.message);
     res.status(500).json({ error: 'Failed to fetch years', details: error.message });
+    next(error);
   }
 });
 
 router.get('/cars/:id', getCarById);
 
-router.get('/reviews', async (req: Request, res: Response): Promise<void> => {
+router.get('/reviews', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [reviews] = await db.query<RowDataPacket[]>(
       `SELECT reviews.*, users.email AS user_email, 
@@ -68,6 +71,7 @@ router.get('/reviews', async (req: Request, res: Response): Promise<void> => {
   } catch (error: any) {
     console.error('[GET /reviews] Error:', error.message);
     res.status(500).json({ error: 'Failed to fetch reviews', details: error.message });
+    next(error);
   }
 });
 
@@ -105,6 +109,7 @@ router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: R
   } catch (error: any) {
     console.error('[POST /reviews] Error:', error.message);
     res.status(500).json({ error: 'Failed to create review', details: error.message });
+    next(error);
   }
 });
 
@@ -150,6 +155,7 @@ router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res
   } catch (error: any) {
     console.error('[PUT /reviews/:id] Error:', error.message);
     res.status(500).json({ error: 'Failed to update review', details: error.message });
+    next(error);
   }
 });
 
@@ -181,6 +187,7 @@ router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, 
   } catch (error: any) {
     console.error('[DELETE /reviews/:id] Error:', error.message);
     res.status(500).json({ error: 'Failed to delete review', details: error.message });
+    next(error);
   }
 });
 
@@ -211,6 +218,7 @@ router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedReq
   } catch (error: any) {
     console.error('[GET /bookings/my-bookings] Error:', error.message);
     res.status(500).json({ error: 'Failed to fetch bookings', details: error.message });
+    next(error);
   }
 });
 
@@ -271,6 +279,7 @@ router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest,
   } catch (error: any) {
     console.error('[DELETE /bookings/:id] Error:', error.message);
     res.status(500).json({ error: 'Failed to delete booking', details: error.message });
+    next(error);
   }
 });
 
@@ -324,6 +333,7 @@ router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: 
   } catch (error: any) {
     console.error('[POST /bookings] Error:', error.message);
     res.status(500).json({ error: 'Failed to create booking', details: error.message });
+    next(error);
   }
 });
 

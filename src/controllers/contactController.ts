@@ -1,8 +1,8 @@
-import { RequestHandler, Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import nodemailer from 'nodemailer';
 import { WebSocketServer, WebSocket } from 'ws';
 import db from '../config/db';
-import { Contact } from '../types/index';
+import { Contact, User, JwtPayload } from '../types';
 import { RowDataPacket } from 'mysql2';
 import path from 'path';
 import fs from 'fs';
@@ -55,35 +55,41 @@ interface ContactRequestBody {
     name: string;
     email: string;
     message: string;
-    reply?: string; // เพิ่มสำหรับการตอบกลับ
+    reply?: string;
 }
 
-// ใช้ Request จาก express และเพิ่ม file จาก multer
-interface ContactRequest extends Request {
+// ใช้ AuthenticatedRequest และเพิ่ม file จาก multer
+interface AuthenticatedRequest extends Request {
+    user?: User | JwtPayload;
     body: ContactRequestBody;
     file?: Express.Multer.File;
 }
 
-export const sendContact: RequestHandler = async (req: ContactRequest, res: Response, next: NextFunction): Promise<void> => {
+export const sendContact = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+    }
+
     try {
         const { name, email, message } = req.body;
         const file = req.file;
 
         if (!name || !email || !message) {
-            res.status(400).json({ message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+            res.status(400).json({ error: 'Name, email, and message are required' });
             return;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-            res.status(400).json({ message: 'รูปแบบอีเมลไม่ถูกต้อง' });
+            res.status(400).json({ error: 'Invalid email format' });
             return;
         }
 
         const filePath = file ? `/uploads/${file.filename}` : null;
         await db.query(
-            'INSERT INTO contacts (name, email, message, file_name, created_at) VALUES (?, ?, ?, ?, NOW())',
-            [name, email, message, filePath]
+            'INSERT INTO contacts (user_id, name, email, message, file_name, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+            [req.user.id, name, email, message, filePath]
         );
 
         const mailOptions: nodemailer.SendMailOptions = {
@@ -109,38 +115,56 @@ export const sendContact: RequestHandler = async (req: ContactRequest, res: Resp
         await transporter.sendMail(mailOptions);
         notifyAdmins(`New contact message from ${name}: ${message}`);
 
-        res.status(200).json({ message: 'ส่งข้อความสำเร็จ' });
+        res.status(200).json({ message: 'Contact message sent successfully' });
     } catch (error: any) {
-        console.error('Error in sendContact:', error.message);
-        res.status(500).json({ message: 'ไม่สามารถส่งข้อความได้', error: error.message });
+        console.error('Error in sendContact:', error);
+        res.status(500).json({ error: 'Failed to send contact message', details: error.message });
         next(error);
     }
 };
 
-export const getContacts: RequestHandler = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getContacts = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+    }
+    if (req.user.role !== 'admin') {
+        res.status(403).json({ error: 'Access denied. Admins only.' });
+        return;
+    }
+
     try {
         const [rows] = await db.query<(RowDataPacket & Contact)[]>('SELECT * FROM contacts ORDER BY created_at DESC');
         res.status(200).json(rows);
     } catch (error: any) {
-        console.error('Error fetching contacts:', error.message);
-        res.status(500).json({ message: 'ไม่สามารถดึงข้อมูลข้อความได้', error: error.message });
+        console.error('Error in getContacts:', error);
+        res.status(500).json({ error: 'Failed to fetch contacts', details: error.message });
         next(error);
     }
 };
 
-export const replyContact: RequestHandler = async (req: ContactRequest, res: Response, next: NextFunction): Promise<void> => {
+export const replyContact = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+    }
+    if (req.user.role !== 'admin') {
+        res.status(403).json({ error: 'Access denied. Admins only.' });
+        return;
+    }
+
     try {
         const { id } = req.params;
         const { reply } = req.body;
 
         if (!id || !reply) {
-            res.status(400).json({ message: 'ID และข้อความตอบกลับเป็นสิ่งจำเป็น' });
+            res.status(400).json({ error: 'ID and reply message are required' });
             return;
         }
 
         const [contact] = await db.query<(RowDataPacket & Contact)[]>('SELECT * FROM contacts WHERE id = ?', [id]);
         if (contact.length === 0) {
-            res.status(404).json({ message: 'ข้อความไม่พบ' });
+            res.status(404).json({ error: 'Contact not found' });
             return;
         }
 
@@ -155,41 +179,50 @@ export const replyContact: RequestHandler = async (req: ContactRequest, res: Res
         await db.query('UPDATE contacts SET status = ? WHERE id = ?', ['replied', id]);
         notifyAdmins(`Replied to contact message from ${contact[0].name}`);
 
-        res.status(200).json({ message: 'ตอบกลับข้อความสำเร็จ' });
+        res.status(200).json({ message: 'Contact replied successfully' });
     } catch (error: any) {
-        console.error('Error in replyContact:', error.message);
-        res.status(500).json({ message: 'ไม่สามารถตอบกลับข้อความได้', error: error.message });
+        console.error('Error in replyContact:', error);
+        res.status(500).json({ error: 'Failed to reply to contact', details: error.message });
         next(error);
     }
 };
 
-export const deleteContact: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const deleteContact = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+    }
+    if (req.user.role !== 'admin') {
+        res.status(403).json({ error: 'Access denied. Admins only.' });
+        return;
+    }
+
     try {
         const { id } = req.params;
 
         if (!id) {
-            res.status(400).json({ message: 'ID เป็นสิ่งจำเป็น' });
+            res.status(400).json({ error: 'ID is required' });
             return;
         }
 
         const [contact] = await db.query<(RowDataPacket & Contact)[]>('SELECT file_name FROM contacts WHERE id = ?', [id]);
         if (contact.length === 0) {
-            res.status(404).json({ message: 'ข้อความไม่พบ' });
+            res.status(404).json({ error: 'Contact not found' });
             return;
         }
 
         if (contact[0].file_name) {
-            const filePath = path.join(__dirname, '../../uploads', path.basename(contact[0].file_name));
+            const filePath = path.join(__dirname, '../../Uploads', path.basename(contact[0].file_name));
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
             }
         }
 
         await db.query('DELETE FROM contacts WHERE id = ?', [id]);
-        res.status(200).json({ message: 'ลบข้อความสำเร็จ' });
+        res.status(200).json({ message: 'Contact deleted successfully' });
     } catch (error: any) {
-        console.error('Error in deleteContact:', error.message);
-        res.status(500).json({ message: 'ไม่สามารถลบข้อความได้', error: error.message });
+        console.error('Error in deleteContact:', error);
+        res.status(500).json({ error: 'Failed to delete contact', details: error.message });
         next(error);
     }
 };
