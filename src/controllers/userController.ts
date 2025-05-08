@@ -17,7 +17,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
 
   try {
     const [users] = await db.query<RowDataPacket[]>(
-      'SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC'
     );
 
     const [lastLogins] = await db.query<RowDataPacket[]>(
@@ -105,10 +105,10 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
 
   try {
     const { id } = req.params;
-    const { username, email, role, password } = req.body;
+    const { name, email, role, password } = req.body;
 
-    if (!username || !email || !role) {
-      res.status(400).json({ error: 'Username, email, and role are required' });
+    if (!name || !email || !role) {
+      res.status(400).json({ error: 'Name, email, and role are required' });
       return;
     }
 
@@ -122,14 +122,14 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
       return;
     }
 
-    const updateFields: any = { username, email, role };
+    const updateFields: any = { name, email, role };
     if (password) {
       updateFields.password = await bcrypt.hash(password, 10);
     }
 
     await db.query(
-      'UPDATE users SET username = ?, email = ?, role = ?, password = ? WHERE id = ?',
-      [username, email, role, updateFields.password || user[0].password, id]
+      'UPDATE users SET name = ?, email = ?, role = ?, password = ? WHERE id = ?',
+      [name, email, role, updateFields.password || user[0].password, id]
     );
 
     res.status(200).json({ message: 'User updated successfully' });
@@ -147,10 +147,10 @@ export const addUser = async (req: AuthenticatedRequest, res: Response, next: Ne
   }
 
   try {
-    const { username, email, password, role } = req.body;
+    const { name, email, password, role } = req.body;
 
-    if (!username || !email || !password || !role) {
-      res.status(400).json({ error: 'Username, email, password, and role are required' });
+    if (!name || !email || !password || !role) {
+      res.status(400).json({ error: 'Name, email, password, and role are required' });
       return;
     }
 
@@ -167,8 +167,8 @@ export const addUser = async (req: AuthenticatedRequest, res: Response, next: Ne
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await db.query(
-      'INSERT INTO users (username, email, password, role, created_at) VALUES (?, ?, ?, ?, NOW())',
-      [username, email, hashedPassword, role]
+      'INSERT INTO users (name, email, password, role, created_at) VALUES (?, ?, ?, ?, NOW())',
+      [name, email, hashedPassword, role]
     );
 
     res.status(201).json({ message: 'User added successfully' });
