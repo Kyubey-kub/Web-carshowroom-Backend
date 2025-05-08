@@ -3,14 +3,15 @@ import db from '../config/db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
 import { RowDataPacket } from 'mysql2';
 import { format, isValid, parseISO } from 'date-fns';
-import { register, login, getDashboardData } from '../controllers/authController';
+import { register, login, getDashboardData, getRecentActivity } from '../controllers/authController';
 import { getCarById } from '../controllers/carController';
 import { sendContact, getContacts, replyContact, deleteContact } from '../controllers/contactController';
 import { getUserActivity, getRegistrationTrends } from '../controllers/reportController';
-import { User, JwtPayload } from '../types/index';
+import { User, JwtPayload } from '../types';
 
+// ปรับ AuthenticatedRequest
 interface AuthenticatedRequest extends Request {
-  user?: User & JwtPayload;
+  user?: (User | JwtPayload) & { id: number; email: string; role: string };
 }
 
 const router = Router();
@@ -278,6 +279,8 @@ router.post('/auth/register', register);
 router.post('/auth/login', login);
 
 router.get('/auth/dashboard', authMiddleware, adminMiddleware, getDashboardData);
+
+router.get('/auth/recent-activity', authMiddleware, adminMiddleware, getRecentActivity);
 
 router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {

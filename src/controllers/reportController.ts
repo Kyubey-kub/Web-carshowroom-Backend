@@ -3,8 +3,9 @@ import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
 import { User, JwtPayload } from '../types';
 
+// ปรับ AuthenticatedRequest
 interface AuthenticatedRequest extends Request {
-  user?: User & JwtPayload;
+  user?: (User | JwtPayload) & { id: number; email: string; role: string };
 }
 
 export const getUserActivity = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {

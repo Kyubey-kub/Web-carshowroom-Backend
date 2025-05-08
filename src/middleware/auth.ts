@@ -1,11 +1,11 @@
 import { RequestHandler, Request, Response, NextFunction } from 'express';
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import db from '../config/db';
-import { User, JwtPayload as CustomJwtPayload } from '../types/index';
+import { User, JwtPayload } from '../types';
 
-// ขยาย Request เพื่อเพิ่ม user
+// ปรับ AuthenticatedRequest ให้รองรับ User และ JwtPayload
 interface AuthenticatedRequest extends Request {
-  user?: User & CustomJwtPayload;
+  user?: (User | JwtPayload) & { id: number; email: string; role: 'client' | 'admin' };
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -16,7 +16,7 @@ if (!JWT_SECRET) {
 // ฟังก์ชันสำหรับดึงข้อมูลผู้ใช้จากฐานข้อมูล
 const findUserById = async (id: number): Promise<User | null> => {
   try {
-    const [rows] = await db.query('SELECT id, name, email, role, created_at FROM users WHERE id = ?', [id]);
+    const [rows] = await db.query('SELECT id, username, email, role, created_at FROM users WHERE id = ?', [id]);
     return (rows as any[])[0] as User | null;
   } catch (error) {
     console.error('Error in findUserById:', error);
@@ -34,7 +34,7 @@ export const authMiddleware: RequestHandler = async (req: AuthenticatedRequest, 
 
   try {
     // Verify token และดึง payload
-    const decoded = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
     console.log('Decoded JWT:', decoded);
 
     // ดึงข้อมูลผู้ใช้จากฐานข้อมูลเพื่อให้ได้ข้อมูลครบถ้วน

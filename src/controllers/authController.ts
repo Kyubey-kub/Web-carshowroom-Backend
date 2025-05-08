@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt, { SignOptions, JwtPayload } from 'jsonwebtoken';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
-import { DashboardData, User, JwtPayload } from '../types';
+import { DashboardData, User } from '../types';
 
-// ขยาย Request เพื่อเพิ่ม user
+// ปรับ AuthenticatedRequest ให้รองรับ User และ JwtPayload
 interface AuthenticatedRequest extends Request {
-  user?: User & JwtPayload;
+  user?: (User | JwtPayload) & { id: number; email: string; role: string };
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -38,10 +38,10 @@ function parseExpiresIn(value: string): number {
 }
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const { email, password, role, name } = req.body;
+  const { email, password, role, username } = req.body;
 
-  if (!email || !password || !name) {
-    res.status(400).json({ error: 'Name, email, and password are required' });
+  if (!email || !password || !username) {
+    res.status(400).json({ error: 'Username, email, and password are required' });
     return;
   }
 
@@ -61,14 +61,14 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await db.query(
-      'INSERT INTO users (name, email, password, role, created_at) VALUES (?, ?, ?, ?, NOW())',
-      [name, email, hashedPassword, userRole]
+      'INSERT INTO users (username, email, password, role, created_at) VALUES (?, ?, ?, ?, NOW())',
+      [username, email, hashedPassword, userRole]
     );
 
     const userId = (result as any).insertId;
 
     const [newUser] = await db.query<(RowDataPacket & User)[]>(
-      'SELECT id, name, email, role, created_at FROM users WHERE id = ?',
+      'SELECT id, username, email, role, created_at FROM users WHERE id = ?',
       [userId]
     );
 
@@ -88,7 +88,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     res.status(201).json({
       message: 'User registered successfully',
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, username: user.username, email: user.email, role: user.role },
     });
   } catch (error: any) {
     console.error('Error in register:', error);
@@ -107,7 +107,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
   try {
     const [users] = await db.query<(RowDataPacket & User)[]>(
-      'SELECT id, name, email, role, password, created_at FROM users WHERE email = ?',
+      'SELECT id, username, email, role, password, created_at FROM users WHERE email = ?',
       [email]
     );
 
@@ -138,7 +138,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     res.status(200).json({
       message: 'Login successful',
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, username: user.username, email: user.email, role: user.role },
     });
   } catch (error: any) {
     console.error('Error in login:', error);
@@ -189,13 +189,13 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response,
 export const getRecentActivity = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [logs] = await db.query<RowDataPacket[]>(
-      'SELECT users.name, login_logs.role, login_logs.login_at ' +
+      'SELECT users.username, login_logs.role, login_logs.login_at ' +
       'FROM login_logs JOIN users ON login_logs.user_id = users.id ' +
       'ORDER BY login_logs.login_at DESC LIMIT 3'
     );
 
     const activities = logs.map(log => ({
-      message: `User ${log.name} (${log.role}) logged in`,
+      message: `User ${log.username} (${log.role}) logged in`,
       timestamp: log.login_at,
     }));
 

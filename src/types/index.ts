@@ -1,7 +1,6 @@
 export interface User {
   id: number;
-  name?: string;
-  username?: string;
+  username: string;
   email: string;
   password?: string;
   role: 'client' | 'admin';
@@ -52,7 +51,6 @@ export interface DashboardData {
   totalLogins: number;
 }
 
-// JWT Payload Interface
 export interface JwtPayload {
   id: number;
   email: string;

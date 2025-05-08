@@ -2,10 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
 import bcrypt from 'bcryptjs';
-import { User, JwtPayload } from '../types/index';
+import { User, JwtPayload } from '../types';
 
+// ปรับ AuthenticatedRequest
 interface AuthenticatedRequest extends Request {
-  user?: User & JwtPayload;
+  user?: (User | JwtPayload) & { id: number; email: string; role: string };
 }
 
 export const getUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -16,7 +17,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
 
   try {
     const [users] = await db.query<RowDataPacket[]>(
-      'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC'
     );
 
     const [lastLogins] = await db.query<RowDataPacket[]>(
@@ -38,6 +39,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
   } catch (error: any) {
     console.error('Error in getUsers:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
+    return;
   }
 };
 
@@ -72,6 +74,7 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response, next:
   } catch (error: any) {
     console.error('Error in deleteUser:', error);
     res.status(500).json({ error: 'Failed to delete user' });
+    return;
   }
 };
 
@@ -90,6 +93,7 @@ export const getAdminEmail = async (req: AuthenticatedRequest, res: Response, ne
   } catch (error: any) {
     console.error('Error in getAdminEmail:', error);
     res.status(500).json({ error: 'Failed to fetch admin email' });
+    return;
   }
 };
 
@@ -101,10 +105,10 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
 
   try {
     const { id } = req.params;
-    const { name, email, role, password } = req.body;
+    const { username, email, role, password } = req.body;
 
-    if (!name || !email || !role) {
-      res.status(400).json({ error: 'Name, email, and role are required' });
+    if (!username || !email || !role) {
+      res.status(400).json({ error: 'Username, email, and role are required' });
       return;
     }
 
@@ -118,20 +122,21 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
       return;
     }
 
-    const updateFields: any = { name, email, role };
+    const updateFields: any = { username, email, role };
     if (password) {
       updateFields.password = await bcrypt.hash(password, 10);
     }
 
     await db.query(
-      'UPDATE users SET name = ?, email = ?, role = ?, password = ? WHERE id = ?',
-      [name, email, role, updateFields.password || user[0].password, id]
+      'UPDATE users SET username = ?, email = ?, role = ?, password = ? WHERE id = ?',
+      [username, email, role, updateFields.password || user[0].password, id]
     );
 
     res.status(200).json({ message: 'User updated successfully' });
   } catch (error: any) {
     console.error('Error in updateUser:', error);
     res.status(500).json({ error: 'Failed to update user' });
+    return;
   }
 };
 
@@ -142,10 +147,10 @@ export const addUser = async (req: AuthenticatedRequest, res: Response, next: Ne
   }
 
   try {
-    const { name, email, password, role } = req.body;
+    const { username, email, password, role } = req.body;
 
-    if (!name || !email || !password || !role) {
-      res.status(400).json({ error: 'Name, email, password, and role are required' });
+    if (!username || !email || !password || !role) {
+      res.status(400).json({ error: 'Username, email, password, and role are required' });
       return;
     }
 
@@ -162,13 +167,14 @@ export const addUser = async (req: AuthenticatedRequest, res: Response, next: Ne
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await db.query(
-      'INSERT INTO users (name, email, password, role, created_at) VALUES (?, ?, ?, ?, NOW())',
-      [name, email, hashedPassword, role]
+      'INSERT INTO users (username, email, password, role, created_at) VALUES (?, ?, ?, ?, NOW())',
+      [username, email, hashedPassword, role]
     );
 
     res.status(201).json({ message: 'User added successfully' });
   } catch (error: any) {
     console.error('Error in addUser:', error);
     res.status(500).json({ error: 'Failed to add user' });
+    return;
   }
 };
