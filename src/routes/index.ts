@@ -1,4 +1,5 @@
-import { Router, Response, NextFunction, RequestHandler } from 'express';
+import { Router, Response, NextFunction, RequestHandler, Request } from 'express';
+import { ParamsDictionary } from 'express-serve-static-core';
 import db from '../config/db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
 import { RowDataPacket } from 'mysql2';
@@ -11,7 +12,7 @@ import { AuthenticatedRequest, User, JwtPayload } from '../types';
 
 const router = Router();
 
-router.get('/cars', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/cars', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [cars] = await db.query<RowDataPacket[]>(
       `SELECT cars.*, models.name AS model_name, brands.name AS brand_name 
@@ -27,7 +28,7 @@ router.get('/cars', async (req: AuthenticatedRequest, res: Response, next: NextF
   }
 });
 
-router.get('/brands', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/brands', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [brands] = await db.query<RowDataPacket[]>('SELECT name FROM brands');
     res.status(200).json(brands.map((brand: any) => brand.name));
@@ -38,7 +39,7 @@ router.get('/brands', async (req: AuthenticatedRequest, res: Response, next: Nex
   }
 });
 
-router.get('/years', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/years', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [years] = await db.query<RowDataPacket[]>('SELECT DISTINCT year FROM cars');
     res.status(200).json(years.map((year: any) => year.year.toString()));
@@ -49,9 +50,9 @@ router.get('/years', async (req: AuthenticatedRequest, res: Response, next: Next
   }
 });
 
-router.get('/cars/:id', getCarById as RequestHandler);
+router.get('/cars/:id', getCarById as RequestHandler<ParamsDictionary, any, any, any, Record<string, any>>);
 
-router.get('/reviews', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/reviews', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [reviews] = await db.query<RowDataPacket[]>(
       `SELECT reviews.*, users.email AS user_email, 
@@ -70,14 +71,14 @@ router.get('/reviews', async (req: AuthenticatedRequest, res: Response, next: Ne
   }
 });
 
-router.post('/reviews', authMiddleware as RequestHandler, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
   }
 
   const { car_id, rating, comment } = req.body;
-  const user_id = (req.user as User | JwtPayload).id;
+  const user_id = 'id' in req.user ? req.user.id : (req.user as JwtPayload).id;
 
   if (!car_id || !rating || !comment) {
     res.status(400).json({ error: 'Car ID, rating, and comment are required' });
@@ -108,7 +109,7 @@ router.post('/reviews', authMiddleware as RequestHandler, async (req: Authentica
   }
 });
 
-router.put('/reviews/:id', authMiddleware as RequestHandler, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -116,8 +117,8 @@ router.put('/reviews/:id', authMiddleware as RequestHandler, async (req: Authent
 
   const reviewId = parseInt(req.params.id);
   const { rating, comment } = req.body;
-  const user_id = (req.user as User | JwtPayload).id;
-  const user_role = (req.user as User | JwtPayload).role;
+  const user_id = 'id' in req.user ? req.user.id : (req.user as JwtPayload).id;
+  const user_role = 'role' in req.user ? req.user.role : (req.user as JwtPayload).role;
 
   if (!rating || !comment) {
     res.status(400).json({ error: 'Rating and comment are required' });
@@ -154,15 +155,15 @@ router.put('/reviews/:id', authMiddleware as RequestHandler, async (req: Authent
   }
 });
 
-router.delete('/reviews/:id', authMiddleware as RequestHandler, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
   }
 
   const reviewId = parseInt(req.params.id);
-  const user_id = (req.user as User | JwtPayload).id;
-  const user_role = (req.user as User | JwtPayload).role;
+  const user_id = 'id' in req.user ? req.user.id : (req.user as JwtPayload).id;
+  const user_role = 'role' in req.user ? req.user.role : (req.user as JwtPayload).role;
 
   try {
     const [reviews] = await db.query<RowDataPacket[]>('SELECT * FROM reviews WHERE id = ?', [reviewId]);
@@ -186,13 +187,13 @@ router.delete('/reviews/:id', authMiddleware as RequestHandler, async (req: Auth
   }
 });
 
-router.get('/bookings/my-bookings', authMiddleware as RequestHandler, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
   }
 
-  const user_id = (req.user as User | JwtPayload).id;
+  const user_id = 'id' in req.user ? req.user.id : (req.user as JwtPayload).id;
 
   try {
     const [bookings] = await db.query<RowDataPacket[]>(
@@ -217,7 +218,7 @@ router.get('/bookings/my-bookings', authMiddleware as RequestHandler, async (req
   }
 });
 
-router.delete('/bookings/:id', authMiddleware as RequestHandler, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     console.log('[DELETE /bookings/:id] No user_id found');
     res.status(401).json({ error: 'User not authenticated' });
@@ -225,7 +226,7 @@ router.delete('/bookings/:id', authMiddleware as RequestHandler, async (req: Aut
   }
 
   const bookingId = parseInt(req.params.id);
-  const user_id = (req.user as User | JwtPayload).id;
+  const user_id = 'id' in req.user ? req.user.id : (req.user as JwtPayload).id;
 
   try {
     console.log(`[DELETE /bookings/:id] Deleting booking ID: ${bookingId} for user ID: ${user_id}`);
@@ -278,22 +279,22 @@ router.delete('/bookings/:id', authMiddleware as RequestHandler, async (req: Aut
   }
 });
 
-router.post('/auth/register', register as RequestHandler);
+router.post('/auth/register', register as RequestHandler<ParamsDictionary, any, any, any, Record<string, any>>);
 
-router.post('/auth/login', login as RequestHandler);
+router.post('/auth/login', login as RequestHandler<ParamsDictionary, any, any, any, Record<string, any>>);
 
-router.get('/auth/dashboard', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, getDashboardData as RequestHandler);
+router.get('/auth/dashboard', authMiddleware, adminMiddleware, getDashboardData as RequestHandler<ParamsDictionary, any, any, any, Record<string, any>>);
 
-router.get('/auth/recent-activity', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, getRecentActivity as RequestHandler);
+router.get('/auth/recent-activity', authMiddleware, adminMiddleware, getRecentActivity as RequestHandler<ParamsDictionary, any, any, any, Record<string, any>>);
 
-router.post('/bookings', authMiddleware as RequestHandler, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
   }
 
   const { carId, bookingDate, type, message } = req.body;
-  const userId = (req.user as User | JwtPayload).id;
+  const userId = 'id' in req.user ? req.user.id : (req.user as JwtPayload).id;
 
   if (!carId || !bookingDate || !type) {
     res.status(400).json({ error: 'Car ID, booking date, and type are required' });
@@ -332,13 +333,13 @@ router.post('/bookings', authMiddleware as RequestHandler, async (req: Authentic
   }
 });
 
-router.post('/contacts', authMiddleware as RequestHandler, sendContact as RequestHandler);
-router.get('/contacts', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, getContacts as RequestHandler);
-router.post('/contacts/:id/reply', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, replyContact as RequestHandler);
-router.delete('/contacts/:id', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, deleteContact as RequestHandler);
+router.post('/contacts', authMiddleware, sendContact as RequestHandler<ParamsDictionary, any, any, any, Record<string, any>>);
+router.get('/contacts', authMiddleware, adminMiddleware, getContacts as RequestHandler<ParamsDictionary, any, any, any, Record<string, any>>);
+router.post('/contacts/:id/reply', authMiddleware, adminMiddleware, replyContact as RequestHandler<ParamsDictionary, any, any, any, Record<string, any>>);
+router.delete('/contacts/:id', authMiddleware, adminMiddleware, deleteContact as RequestHandler<ParamsDictionary, any, any, any, Record<string, any>>);
 
 // เพิ่ม routes สำหรับ reports
-router.get('/reports/user-activity', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, getUserActivity as RequestHandler);
-router.get('/reports/registration-trends', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, getRegistrationTrends as RequestHandler);
+router.get('/reports/user-activity', authMiddleware, adminMiddleware, getUserActivity as RequestHandler<ParamsDictionary, any, any, any, Record<string, any>>);
+router.get('/reports/registration-trends', authMiddleware, adminMiddleware, getRegistrationTrends as RequestHandler<ParamsDictionary, any, any, any, Record<string, any>>);
 
 export default router;
