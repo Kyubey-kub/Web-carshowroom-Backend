@@ -1,7 +1,9 @@
+import { Request } from 'express';
+
 export interface User {
   id: number;
   name: string;
-  email: string;
+  email?: string; // ทำให้ email เป็น optional
   password?: string;
   role: 'client' | 'admin';
   created_at?: Date;
@@ -9,8 +11,12 @@ export interface User {
 
 export interface JwtPayload {
   id: number;
-  email: string;
+  email?: string; // ทำให้ email เป็น optional เพื่อความปลอดภัย
   role: 'client' | 'admin';
+}
+
+export interface AuthenticatedRequest extends Request {
+  user?: User | JwtPayload;
 }
 
 export interface Car {

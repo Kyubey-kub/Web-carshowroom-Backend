@@ -1,13 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
 import bcrypt from 'bcryptjs';
-import { User, JwtPayload } from '../types';
-
-// ปรับ AuthenticatedRequest
-interface AuthenticatedRequest extends Request {
-  user?: User | JwtPayload;
-}
+import { AuthenticatedRequest, User, JwtPayload } from '../types';
 
 export const getUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {

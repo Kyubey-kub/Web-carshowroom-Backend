@@ -7,12 +7,7 @@ import { register, login, getDashboardData, getRecentActivity } from '../control
 import { getCarById } from '../controllers/carController';
 import { sendContact, getContacts, replyContact, deleteContact } from '../controllers/contactController';
 import { getUserActivity, getRegistrationTrends } from '../controllers/reportController';
-import { User, JwtPayload } from '../types';
-
-// ปรับ AuthenticatedRequest
-interface AuthenticatedRequest extends Request {
-  user?: User | JwtPayload;
-}
+import { AuthenticatedRequest } from '../types';
 
 const router = Router();
 

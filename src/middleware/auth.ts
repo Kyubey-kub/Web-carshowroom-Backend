@@ -1,10 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { JwtPayload } from '../types';
-
-interface AuthenticatedRequest extends Request {
-  user?: JwtPayload;
-}
+import { AuthenticatedRequest, JwtPayload } from '../types';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -20,10 +16,6 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    if (!decoded.email) {
-      res.status(401).json({ error: 'Invalid token: email missing' });
-      return;
-    }
     req.user = decoded;
     next();
   } catch (error: any) {
