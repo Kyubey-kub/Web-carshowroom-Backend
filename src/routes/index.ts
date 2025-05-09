@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Response, NextFunction, RequestHandler } from 'express';
 import db from '../config/db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
 import { RowDataPacket } from 'mysql2';
@@ -11,7 +11,7 @@ import { AuthenticatedRequest, User, JwtPayload } from '../types';
 
 const router = Router();
 
-router.get('/cars', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/cars', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [cars] = await db.query<RowDataPacket[]>(
       `SELECT cars.*, models.name AS model_name, brands.name AS brand_name 
@@ -27,7 +27,7 @@ router.get('/cars', async (req: Request, res: Response, next: NextFunction): Pro
   }
 });
 
-router.get('/brands', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/brands', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [brands] = await db.query<RowDataPacket[]>('SELECT name FROM brands');
     res.status(200).json(brands.map((brand: any) => brand.name));
@@ -38,7 +38,7 @@ router.get('/brands', async (req: Request, res: Response, next: NextFunction): P
   }
 });
 
-router.get('/years', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/years', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [years] = await db.query<RowDataPacket[]>('SELECT DISTINCT year FROM cars');
     res.status(200).json(years.map((year: any) => year.year.toString()));
@@ -49,9 +49,9 @@ router.get('/years', async (req: Request, res: Response, next: NextFunction): Pr
   }
 });
 
-router.get('/cars/:id', getCarById);
+router.get('/cars/:id', getCarById as RequestHandler);
 
-router.get('/reviews', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/reviews', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [reviews] = await db.query<RowDataPacket[]>(
       `SELECT reviews.*, users.email AS user_email, 
@@ -70,7 +70,7 @@ router.get('/reviews', async (req: Request, res: Response, next: NextFunction): 
   }
 });
 
-router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/reviews', authMiddleware as RequestHandler, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -108,7 +108,7 @@ router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: R
   }
 });
 
-router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.put('/reviews/:id', authMiddleware as RequestHandler, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -154,7 +154,7 @@ router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res
   }
 });
 
-router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.delete('/reviews/:id', authMiddleware as RequestHandler, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -186,7 +186,7 @@ router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, 
   }
 });
 
-router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.get('/bookings/my-bookings', authMiddleware as RequestHandler, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -217,7 +217,7 @@ router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedReq
   }
 });
 
-router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.delete('/bookings/:id', authMiddleware as RequestHandler, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     console.log('[DELETE /bookings/:id] No user_id found');
     res.status(401).json({ error: 'User not authenticated' });
@@ -278,15 +278,15 @@ router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest,
   }
 });
 
-router.post('/auth/register', register);
+router.post('/auth/register', register as RequestHandler);
 
-router.post('/auth/login', login);
+router.post('/auth/login', login as RequestHandler);
 
-router.get('/auth/dashboard', authMiddleware, adminMiddleware, getDashboardData);
+router.get('/auth/dashboard', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, getDashboardData as RequestHandler);
 
-router.get('/auth/recent-activity', authMiddleware, adminMiddleware, getRecentActivity);
+router.get('/auth/recent-activity', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, getRecentActivity as RequestHandler);
 
-router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/bookings', authMiddleware as RequestHandler, async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -332,13 +332,13 @@ router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: 
   }
 });
 
-router.post('/contacts', authMiddleware, sendContact);
-router.get('/contacts', authMiddleware, adminMiddleware, getContacts);
-router.post('/contacts/:id/reply', authMiddleware, adminMiddleware, replyContact);
-router.delete('/contacts/:id', authMiddleware, adminMiddleware, deleteContact);
+router.post('/contacts', authMiddleware as RequestHandler, sendContact as RequestHandler);
+router.get('/contacts', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, getContacts as RequestHandler);
+router.post('/contacts/:id/reply', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, replyContact as RequestHandler);
+router.delete('/contacts/:id', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, deleteContact as RequestHandler);
 
 // เพิ่ม routes สำหรับ reports
-router.get('/reports/user-activity', authMiddleware, adminMiddleware, getUserActivity);
-router.get('/reports/registration-trends', authMiddleware, adminMiddleware, getRegistrationTrends);
+router.get('/reports/user-activity', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, getUserActivity as RequestHandler);
+router.get('/reports/registration-trends', authMiddleware as RequestHandler, adminMiddleware as RequestHandler, getRegistrationTrends as RequestHandler);
 
 export default router;
