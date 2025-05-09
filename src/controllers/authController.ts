@@ -1,13 +1,9 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
-import { User, JwtPayload } from '../types';
-
-interface AuthenticatedRequest extends Request {
-  user?: JwtPayload;
-}
+import { User, JwtPayload, AuthenticatedRequest } from '../types';
 
 interface RegisterRequestBody {
   name: string;
@@ -47,7 +43,7 @@ function parseExpiresIn(value: string): number {
   }
 }
 
-export const register = async (req: Request<{}, {}, RegisterRequestBody>, res: Response): Promise<void> => {
+export const register = async (req: Request<{}, {}, RegisterRequestBody>, res: Response, next: NextFunction): Promise<void> => {
   const { name, email, password, role } = req.body;
 
   if (!name || !email || !password) {
@@ -87,10 +83,11 @@ export const register = async (req: Request<{}, {}, RegisterRequestBody>, res: R
   } catch (error: any) {
     console.error('Error in register:', error);
     res.status(500).json({ error: 'Failed to register user' });
+    next(error);
   }
 };
 
-export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Response): Promise<void> => {
+export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Response, next: NextFunction): Promise<void> => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -129,10 +126,11 @@ export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Respons
   } catch (error: any) {
     console.error('Error in login:', error);
     res.status(500).json({ error: 'Failed to login' });
+    next(error);
   }
 };
 
-export const getDashboardData = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const getDashboardData = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -159,10 +157,11 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
   } catch (error: any) {
     console.error('Error in getDashboardData:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
+    next(error);
   }
 };
 
-export const getRecentActivity = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const getRecentActivity = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [logs] = await db.query<RowDataPacket[]>(
       'SELECT users.name, login_logs.role, login_logs.login_at FROM login_logs JOIN users ON login_logs.user_id = users.id ORDER BY login_logs.login_at DESC LIMIT 3'
@@ -175,6 +174,7 @@ export const getRecentActivity = async (req: AuthenticatedRequest, res: Response
   } catch (error: any) {
     console.error('Error in getRecentActivity:', error);
     res.status(500).json({ error: 'Failed to fetch recent activity' });
+    next(error);
   }
 };
 

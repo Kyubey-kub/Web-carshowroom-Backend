@@ -1,12 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
-import { User, JwtPayload } from '../types';
-
-// ปรับ AuthenticatedRequest
-interface AuthenticatedRequest extends Request {
-  user?: User | JwtPayload;
-}
+import { User, JwtPayload, AuthenticatedRequest } from '../types';
 
 export const getUserActivity = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
@@ -27,7 +22,7 @@ export const getUserActivity = async (req: AuthenticatedRequest, res: Response, 
   } catch (error: any) {
     console.error('Error in getUserActivity:', error);
     res.status(500).json({ error: 'Failed to generate user activity report' });
-    return;
+    next(error);
   }
 };
 
@@ -50,6 +45,6 @@ export const getRegistrationTrends = async (req: AuthenticatedRequest, res: Resp
   } catch (error: any) {
     console.error('Error in getRegistrationTrends:', error);
     res.status(500).json({ error: 'Failed to generate registration trends report' });
-    return;
+    next(error);
   }
 };

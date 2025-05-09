@@ -1,22 +1,27 @@
 import { Request } from 'express';
+import { JwtPayload as JwtPayloadBase } from 'jsonwebtoken';
 
 export interface User {
   id: number;
-  name: string;
-  email?: string; // ทำให้ email เป็น optional
+  name?: string;
+  email: string; // required
   password?: string;
   role: 'client' | 'admin';
   created_at?: Date;
+  iat?: number;
+  exp?: number;
 }
 
-export interface JwtPayload {
+export interface JwtPayload extends JwtPayloadBase {
   id: number;
-  email?: string; // เพิ่ม email เป็น optional
+  email?: string; // เปลี่ยนเป็น optional เพื่อรองรับกรณีที่ token อาจไม่มี email
   role: 'client' | 'admin';
+  iat: number;
+  exp: number;
 }
 
 export interface AuthenticatedRequest extends Request {
-  user?: User | JwtPayload;
+  user?: User | JwtPayload | undefined;
 }
 
 export interface Car {

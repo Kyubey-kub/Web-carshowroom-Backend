@@ -1,9 +1,12 @@
 import { Router } from 'express';
-import { getContacts, sendContact } from '../controllers/contactController'; // ใช้ relative path
+import { authMiddleware, adminMiddleware } from '../middleware/auth';
+import { sendContact, getContacts, replyContact, deleteContact } from '../controllers/contactController';
 
 const router = Router();
 
-router.get('/', getContacts);
-router.post('/', sendContact);
+router.post('/', authMiddleware, sendContact);
+router.get('/', authMiddleware, adminMiddleware, getContacts);
+router.post('/:id/reply', authMiddleware, adminMiddleware, replyContact);
+router.delete('/:id', authMiddleware, adminMiddleware, deleteContact);
 
 export default router;

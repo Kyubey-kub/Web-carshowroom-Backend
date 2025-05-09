@@ -1,35 +1,57 @@
-import { Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { AuthenticatedRequest, JwtPayload } from '../types';
+import { Response, NextFunction, RequestHandler } from 'express';
+import jwt, { VerifyErrors } from 'jsonwebtoken';
+import { AuthenticatedRequest, User, JwtPayload } from '../types';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET is not defined in environment variables');
-}
-
-export const authMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
-  const token = req.headers.authorization?.split(' ')[1];
+export const authMiddleware: RequestHandler = (req, res, next) => {
+  const authReq = req as AuthenticatedRequest;
+  const token = authReq.headers.authorization?.split(' ')[1];
   if (!token) {
     res.status(401).json({ error: 'No token provided' });
     return;
   }
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    req.user = decoded;
-    next();
-  } catch (error: any) {
-    console.error('Error in authMiddleware:', error.message);
-    res.status(401).json({ error: 'Invalid token', details: error.message });
+  const JWT_SECRET = process.env.JWT_SECRET;
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET is not defined in environment variables');
   }
+
+  jwt.verify(token, JWT_SECRET, (err: VerifyErrors | null, decoded: any) => {
+    if (err) {
+      console.error('Error in authMiddleware:', err.message);
+      res.status(401).json({ error: 'Invalid token', details: err.message });
+      return;
+    }
+
+    try {
+      if (typeof decoded.id !== 'number') {
+        throw new Error('ID is required in token');
+      }
+      if (typeof decoded.email !== 'string') {
+        throw new Error('Email is required in token');
+      }
+      if (typeof decoded.role !== 'string' || !['client', 'admin'].includes(decoded.role)) {
+        throw new Error('Invalid role in token');
+      }
+
+      const payload: JwtPayload = {
+        id: decoded.id,
+        email: decoded.email, // ต้องมี email
+        role: decoded.role as 'client' | 'admin',
+        iat: decoded.iat,
+        exp: decoded.exp,
+      };
+      authReq.user = payload;
+      next();
+    } catch (error) {
+      res.status(401).json({ error: 'Invalid token payload', details: error instanceof Error ? error.message : 'Unknown error' });
+      return;
+    }
+  });
 };
 
-export const adminMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
-  if (!req.user) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
-  if (req.user.role !== 'admin') {
+export const adminMiddleware: RequestHandler = (req, res, next) => {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.user || authReq.user.role !== 'admin') {
     res.status(403).json({ error: 'Access denied. Admins only.' });
     return;
   }
