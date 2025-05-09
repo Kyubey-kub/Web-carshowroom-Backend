@@ -11,7 +11,7 @@ export interface User {
 
 export interface JwtPayload {
   id: number;
-  email?: string; // ทำให้ email เป็น optional เพื่อความปลอดภัย
+  email?: string; // ทำให้ email เป็น optional
   role: 'client' | 'admin';
 }
 

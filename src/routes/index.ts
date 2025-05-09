@@ -7,7 +7,7 @@ import { register, login, getDashboardData, getRecentActivity } from '../control
 import { getCarById } from '../controllers/carController';
 import { sendContact, getContacts, replyContact, deleteContact } from '../controllers/contactController';
 import { getUserActivity, getRegistrationTrends } from '../controllers/reportController';
-import { AuthenticatedRequest } from '../types';
+import { AuthenticatedRequest, User, JwtPayload } from '../types';
 
 const router = Router();
 
@@ -77,7 +77,7 @@ router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: R
   }
 
   const { car_id, rating, comment } = req.body;
-  const user_id = req.user.id;
+  const user_id = (req.user as User | JwtPayload).id;
 
   if (!car_id || !rating || !comment) {
     res.status(400).json({ error: 'Car ID, rating, and comment are required' });
@@ -116,8 +116,8 @@ router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res
 
   const reviewId = parseInt(req.params.id);
   const { rating, comment } = req.body;
-  const user_id = req.user.id;
-  const user_role = req.user.role;
+  const user_id = (req.user as User | JwtPayload).id;
+  const user_role = (req.user as User | JwtPayload).role;
 
   if (!rating || !comment) {
     res.status(400).json({ error: 'Rating and comment are required' });
@@ -161,8 +161,8 @@ router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, 
   }
 
   const reviewId = parseInt(req.params.id);
-  const user_id = req.user.id;
-  const user_role = req.user.role;
+  const user_id = (req.user as User | JwtPayload).id;
+  const user_role = (req.user as User | JwtPayload).role;
 
   try {
     const [reviews] = await db.query<RowDataPacket[]>('SELECT * FROM reviews WHERE id = ?', [reviewId]);
@@ -192,7 +192,7 @@ router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedReq
     return;
   }
 
-  const user_id = req.user.id;
+  const user_id = (req.user as User | JwtPayload).id;
 
   try {
     const [bookings] = await db.query<RowDataPacket[]>(
@@ -225,7 +225,7 @@ router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest,
   }
 
   const bookingId = parseInt(req.params.id);
-  const user_id = req.user.id;
+  const user_id = (req.user as User | JwtPayload).id;
 
   try {
     console.log(`[DELETE /bookings/:id] Deleting booking ID: ${bookingId} for user ID: ${user_id}`);
@@ -293,7 +293,7 @@ router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: 
   }
 
   const { carId, bookingDate, type, message } = req.body;
-  const userId = req.user.id;
+  const userId = (req.user as User | JwtPayload).id;
 
   if (!carId || !bookingDate || !type) {
     res.status(400).json({ error: 'Car ID, booking date, and type are required' });
