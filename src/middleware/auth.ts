@@ -1,25 +1,19 @@
-import { Response, NextFunction, RequestHandler } from 'express';
+import { Response, NextFunction } from 'express';
 import jwt, { VerifyErrors } from 'jsonwebtoken';
-import { AuthenticatedRequest, User, JwtPayload } from '../types';
+import { AuthenticatedRequest, User } from '../types';
 
-export const authMiddleware: RequestHandler = (req, res, next) => {
-  const authReq = req as AuthenticatedRequest;
-  const token = authReq.headers.authorization?.split(' ')[1];
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization?.split(' ')[1];
   if (!token) {
-    res.status(401).json({ error: 'No token provided' });
-    return;
-  }
-
-  const JWT_SECRET = process.env.JWT_SECRET;
-  if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET is not defined in environment variables');
+    return res.status(401).json({ error: 'No token provided' });
   }
 
   jwt.verify(token, JWT_SECRET, (err: VerifyErrors | null, decoded: any) => {
     if (err) {
       console.error('Error in authMiddleware:', err.message);
-      res.status(401).json({ error: 'Invalid token', details: err.message });
-      return;
+      return res.status(401).json({ error: 'Invalid token', details: err.message });
     }
 
     try {
@@ -33,27 +27,27 @@ export const authMiddleware: RequestHandler = (req, res, next) => {
         throw new Error('Invalid role in token');
       }
 
-      const payload: JwtPayload = {
+      const user: User = {
         id: decoded.id,
-        email: decoded.email, // ต้องมี email
+        email: decoded.email,
         role: decoded.role as 'client' | 'admin',
         iat: decoded.iat,
         exp: decoded.exp,
       };
-      authReq.user = payload;
+      req.user = user;
       next();
     } catch (error) {
-      res.status(401).json({ error: 'Invalid token payload', details: error instanceof Error ? error.message : 'Unknown error' });
-      return;
+      return res.status(401).json({
+        error: 'Invalid token payload',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   });
 };
 
-export const adminMiddleware: RequestHandler = (req, res, next) => {
-  const authReq = req as AuthenticatedRequest;
-  if (!authReq.user || authReq.user.role !== 'admin') {
-    res.status(403).json({ error: 'Access denied. Admins only.' });
-    return;
+export const adminMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Access denied. Admins only.' });
   }
   next();
 };

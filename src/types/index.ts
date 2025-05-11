@@ -14,14 +14,14 @@ export interface User {
 
 export interface JwtPayload extends JwtPayloadBase {
   id: number;
-  email?: string; // เปลี่ยนเป็น optional เพื่อรองรับกรณีที่ token อาจไม่มี email
+  email: string; // เปลี่ยนเป็น required เพื่อให้ตรงกับ User
   role: 'client' | 'admin';
-  iat: number;
-  exp: number;
+  iat?: number;
+  exp?: number;
 }
 
 export interface AuthenticatedRequest extends Request {
-  user?: User | JwtPayload | undefined;
+  user?: User; // ใช้ User เท่านั้น
 }
 
 export interface Car {
