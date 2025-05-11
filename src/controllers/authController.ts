@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
-import db from '..//config/db';
+import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
 import { User, AuthenticatedRequest } from '../types';
 
@@ -161,7 +161,7 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
 export const getRecentActivity = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const [logs] = await db.query<RowDataPacket[]>(
-      'SELECT users.name, login_logs.role, login_logs.login_at FROM login_logs JOIN users ON login_logs.user_id = users.id ORDER BY login_logs.login_at DESC LIMIT 3'
+      'SELECT users.name, login_logs.role, login_logs.login_at FROM login_logs JOIN users ON login_logs.user_id = users.id ORDER BY login_logs.start_at DESC LIMIT 3'
     );
     const activities = logs.map(log => ({
       message: `User ${log.name} (${log.role}) logged in`,
