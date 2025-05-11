@@ -31,7 +31,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response): Promis
     });
 
     res.status(200).json(usersWithStatus);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in getUsers:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
   }
@@ -65,7 +65,7 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response): Prom
     await db.query('DELETE FROM users WHERE id = ?', [id]);
 
     res.status(200).json({ message: 'User deleted successfully' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in deleteUser:', error);
     res.status(500).json({ error: 'Failed to delete user' });
   }
@@ -83,7 +83,7 @@ export const getAdminEmail = async (req: AuthenticatedRequest, res: Response): P
     }
 
     res.status(200).json({ email: admins[0].email });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in getAdminEmail:', error);
     res.status(500).json({ error: 'Failed to fetch admin email' });
   }
@@ -125,7 +125,7 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response): Prom
     );
 
     res.status(200).json({ message: 'User updated successfully' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in updateUser:', error);
     res.status(500).json({ error: 'Failed to update user' });
   }
@@ -163,7 +163,7 @@ export const addUser = async (req: AuthenticatedRequest, res: Response): Promise
     );
 
     res.status(201).json({ message: 'User added successfully' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in addUser:', error);
     res.status(500).json({ error: 'Failed to add user' });
   }

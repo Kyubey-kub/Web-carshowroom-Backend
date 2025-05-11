@@ -80,7 +80,7 @@ export const register = async (req: Request<{}, {}, RegisterRequestBody>, res: R
       token,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in register:', error);
     res.status(500).json({ error: 'Failed to register user' });
   }
@@ -122,7 +122,7 @@ export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Respons
       token,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in login:', error);
     res.status(500).json({ error: 'Failed to login' });
   }
@@ -152,7 +152,7 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
     };
 
     res.status(200).json(dashboardData);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in getDashboardData:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
   }
@@ -161,14 +161,14 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
 export const getRecentActivity = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const [logs] = await db.query<RowDataPacket[]>(
-      'SELECT users.name, login_logs.role, login_logs.login_at FROM login_logs JOIN users ON login_logs.user_id = users.id ORDER BY login_logs.start_at DESC LIMIT 3'
+      'SELECT users.name, login_logs.role, login_logs.login_at FROM login_logs JOIN users ON login_logs.user_id = users.id ORDER BY login_logs.login_at DESC LIMIT 3'
     );
     const activities = logs.map(log => ({
       message: `User ${log.name} (${log.role}) logged in`,
       timestamp: log.login_at,
     }));
     res.status(200).json(activities);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in getRecentActivity:', error);
     res.status(500).json({ error: 'Failed to fetch recent activity' });
   }

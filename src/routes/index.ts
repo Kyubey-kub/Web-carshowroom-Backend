@@ -1,4 +1,4 @@
-import { Router, Response, Request } from 'express';
+import { Router, Request, Response } from 'express';
 import db from '../config/db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
 import { RowDataPacket } from 'mysql2';
@@ -11,7 +11,7 @@ import { AuthenticatedRequest } from '../types';
 
 const router = Router();
 
-router.get('/cars', async (req: Request, res: Response) => {
+router.get('/cars', async (req: Request, res: Response): Promise<void> => {
   try {
     const [cars] = await db.query<RowDataPacket[]>(
       `SELECT cars.*, models.name AS model_name, brands.name AS brand_name 
@@ -20,35 +20,35 @@ router.get('/cars', async (req: Request, res: Response) => {
        LEFT JOIN brands ON models.brand_id = brands.id`
     );
     res.status(200).json(cars);
-  } catch (error: any) {
-    console.error('[GET /cars] Error:', error.message);
-    res.status(500).json({ error: 'Failed to fetch cars', details: error.message });
+  } catch (error) {
+    console.error('[GET /cars] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch cars', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
-router.get('/brands', async (req: Request, res: Response) => {
+router.get('/brands', async (req: Request, res: Response): Promise<void> => {
   try {
     const [brands] = await db.query<RowDataPacket[]>('SELECT name FROM brands');
     res.status(200).json(brands.map((brand: any) => brand.name));
-  } catch (error: any) {
-    console.error('[GET /brands] Error:', error.message);
-    res.status(500).json({ error: 'Failed to fetch brands', details: error.message });
+  } catch (error) {
+    console.error('[GET /brands] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch brands', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
-router.get('/years', async (req: Request, res: Response) => {
+router.get('/years', async (req: Request, res: Response): Promise<void> => {
   try {
     const [years] = await db.query<RowDataPacket[]>('SELECT DISTINCT year FROM cars');
     res.status(200).json(years.map((year: any) => year.year.toString()));
-  } catch (error: any) {
-    console.error('[GET /years] Error:', error.message);
-    res.status(500).json({ error: 'Failed to fetch years', details: error.message });
+  } catch (error) {
+    console.error('[GET /years] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch years', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
 router.get('/cars/:id', getCarById);
 
-router.get('/reviews', async (req: Request, res: Response) => {
+router.get('/reviews', async (req: Request, res: Response): Promise<void> => {
   try {
     const [reviews] = await db.query<RowDataPacket[]>(
       `SELECT reviews.*, users.email AS user_email, 
@@ -60,13 +60,13 @@ router.get('/reviews', async (req: Request, res: Response) => {
        JOIN brands ON models.brand_id = brands.id`
     );
     res.status(200).json(reviews);
-  } catch (error: any) {
-    console.error('[GET /reviews] Error:', error.message);
-    res.status(500).json({ error: 'Failed to fetch reviews', details: error.message });
+  } catch (error) {
+    console.error('[GET /reviews] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch reviews', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
-router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -97,13 +97,13 @@ router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: R
       [user_id, car_id, rating, comment]
     );
     res.status(201).json({ id: (result as any).insertId, user_id, car_id, rating, comment, created_at: new Date().toISOString() });
-  } catch (error: any) {
-    console.error('[POST /reviews] Error:', error.message);
-    res.status(500).json({ error: 'Failed to create review', details: error.message });
+  } catch (error) {
+    console.error('[POST /reviews] Error:', error);
+    res.status(500).json({ error: 'Failed to create review', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
-router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -142,13 +142,13 @@ router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res
       [rating, comment, reviewId]
     );
     res.status(200).json({ id: reviewId, rating, comment });
-  } catch (error: any) {
-    console.error('[PUT /reviews/:id] Error:', error.message);
-    res.status(500).json({ error: 'Failed to update review', details: error.message });
+  } catch (error) {
+    console.error('[PUT /reviews/:id] Error:', error);
+    res.status(500).json({ error: 'Failed to update review', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
-router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -173,13 +173,13 @@ router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, 
 
     await db.query('DELETE FROM reviews WHERE id = ?', [reviewId]);
     res.status(200).json({ message: 'Review deleted successfully' });
-  } catch (error: any) {
-    console.error('[DELETE /reviews/:id] Error:', error.message);
-    res.status(500).json({ error: 'Failed to delete review', details: error.message });
+  } catch (error) {
+    console.error('[DELETE /reviews/:id] Error:', error);
+    res.status(500).json({ error: 'Failed to delete review', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
-router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -203,13 +203,13 @@ router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedReq
 
     console.log(`[GET /bookings/my-bookings] userId: ${user_id}, bookings:`, bookings);
     res.status(200).json(bookings);
-  } catch (error: any) {
-    console.error('[GET /bookings/my-bookings] Error:', error.message);
-    res.status(500).json({ error: 'Failed to fetch bookings', details: error.message });
+  } catch (error) {
+    console.error('[GET /bookings/my-bookings] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch bookings', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
-router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     console.log('[DELETE /bookings/:id] No user_id found');
     res.status(401).json({ error: 'User not authenticated' });
@@ -263,9 +263,9 @@ router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest,
     console.log(`[DELETE /bookings/:id] Updated car status to "available" for car ID: ${booking.car_id}`);
 
     res.status(200).json({ message: 'Booking deleted successfully' });
-  } catch (error: any) {
-    console.error('[DELETE /bookings/:id] Error:', error.message);
-    res.status(500).json({ error: 'Failed to delete booking', details: error.message });
+  } catch (error) {
+    console.error('[DELETE /bookings/:id] Error:', error);
+    res.status(500).json({ error: 'Failed to delete booking', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
@@ -277,7 +277,7 @@ router.get('/auth/dashboard', authMiddleware, adminMiddleware, getDashboardData)
 
 router.get('/auth/recent-activity', authMiddleware, adminMiddleware, getRecentActivity);
 
-router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -316,9 +316,9 @@ router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: 
       [userId, carId, formattedBookingDate, type, message, 'pending']
     );
     res.status(201).json({ id: (result as any).insertId, carId, bookingDate, type, message, userId, status: 'pending' });
-  } catch (error: any) {
-    console.error('[POST /bookings] Error:', error.message);
-    res.status(500).json({ error: 'Failed to create booking', details: error.message });
+  } catch (error) {
+    console.error('[POST /bookings] Error:', error);
+    res.status(500).json({ error: 'Failed to create booking', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 

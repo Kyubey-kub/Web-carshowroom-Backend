@@ -1,19 +1,21 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt, { VerifyErrors } from 'jsonwebtoken';
 import { AuthenticatedRequest, User } from '../types';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
+    res.status(401).json({ error: 'No token provided' });
+    return;
   }
 
   jwt.verify(token, JWT_SECRET, (err: VerifyErrors | null, decoded: any) => {
     if (err) {
       console.error('Error in authMiddleware:', err.message);
-      return res.status(401).json({ error: 'Invalid token', details: err.message });
+      res.status(401).json({ error: 'Invalid token', details: err.message });
+      return;
     }
 
     try {
@@ -37,7 +39,7 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
       req.user = user;
       next();
     } catch (error) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Invalid token payload',
         details: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -45,9 +47,10 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
   });
 };
 
-export const adminMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const adminMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
   if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Access denied. Admins only.' });
+    res.status(403).json({ error: 'Access denied. Admins only.' });
+    return;
   }
   next();
 };

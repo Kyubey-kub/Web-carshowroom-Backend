@@ -19,7 +19,7 @@ export const getUserActivity = async (req: AuthenticatedRequest, res: Response):
     );
 
     res.status(200).json(logs);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in getUserActivity:', error);
     res.status(500).json({ error: 'Failed to generate user activity report' });
   }
@@ -41,7 +41,7 @@ export const getRegistrationTrends = async (req: AuthenticatedRequest, res: Resp
     );
 
     res.status(200).json(trends);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in getRegistrationTrends:', error);
     res.status(500).json({ error: 'Failed to generate registration trends report' });
   }

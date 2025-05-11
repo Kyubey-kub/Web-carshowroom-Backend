@@ -1,8 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response } from 'express';
 import nodemailer from 'nodemailer';
 import { WebSocketServer, WebSocket } from 'ws';
 import db from '../config/db';
-import { Contact, User, JwtPayload, AuthenticatedRequest } from '../types';
+import { Contact, AuthenticatedRequest } from '../types';
 import { RowDataPacket } from 'mysql2';
 import path from 'path';
 import fs from 'fs';
@@ -50,14 +50,7 @@ if (missingEnvVars.length > 0) {
   throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
 }
 
-interface ContactRequestBody {
-  name: string;
-  email: string;
-  message: string;
-  reply?: string;
-}
-
-export const sendContact = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const sendContact = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -108,14 +101,13 @@ export const sendContact = async (req: AuthenticatedRequest, res: Response, next
     notifyAdmins(`New contact message from ${name}: ${message}`);
 
     res.status(200).json({ message: 'Contact message sent successfully' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in sendContact:', error);
-    res.status(500).json({ error: 'Failed to send contact message', details: error.message });
-    next(error);
+    res.status(500).json({ error: 'Failed to send contact message', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
-export const getContacts = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const getContacts = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -128,14 +120,13 @@ export const getContacts = async (req: AuthenticatedRequest, res: Response, next
   try {
     const [rows] = await db.query<(RowDataPacket & Contact)[]>('SELECT * FROM contacts ORDER BY created_at DESC');
     res.status(200).json(rows);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in getContacts:', error);
-    res.status(500).json({ error: 'Failed to fetch contacts', details: error.message });
-    next(error);
+    res.status(500).json({ error: 'Failed to fetch contacts', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
-export const replyContact = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const replyContact = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -172,14 +163,13 @@ export const replyContact = async (req: AuthenticatedRequest, res: Response, nex
     notifyAdmins(`Replied to contact message from ${contact[0].name}`);
 
     res.status(200).json({ message: 'Contact replied successfully' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in replyContact:', error);
-    res.status(500).json({ error: 'Failed to reply to contact', details: error.message });
-    next(error);
+    res.status(500).json({ error: 'Failed to reply to contact', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
-export const deleteContact = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const deleteContact = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -204,7 +194,7 @@ export const deleteContact = async (req: AuthenticatedRequest, res: Response, ne
     }
 
     if (contact[0].file_name) {
-      const filePath = path.join(__dirname, '../../Uploads', path.basename(contact[0].file_name));
+      const filePath = path.join(__dirname, '../../uploads', path.basename(contact[0].file_name));
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
@@ -212,9 +202,8 @@ export const deleteContact = async (req: AuthenticatedRequest, res: Response, ne
 
     await db.query('DELETE FROM contacts WHERE id = ?', [id]);
     res.status(200).json({ message: 'Contact deleted successfully' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in deleteContact:', error);
-    res.status(500).json({ error: 'Failed to delete contact', details: error.message });
-    next(error);
+    res.status(500).json({ error: 'Failed to delete contact', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
