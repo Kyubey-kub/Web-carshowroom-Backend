@@ -1,4 +1,4 @@
-import { Router, Response, NextFunction, RequestHandler, Request } from 'express';
+import { Router, Response, Request } from 'express';
 import db from '../config/db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
 import { RowDataPacket } from 'mysql2';
@@ -11,8 +11,8 @@ import { AuthenticatedRequest } from '../types';
 
 const router = Router();
 
-// เส้นทางที่ไม่ต้องใช้ authMiddleware
-router.get('/cars', async (req: Request, res: Response, next: NextFunction) => {
+// Routes that don't require authMiddleware
+router.get('/cars', async (req: Request, res: Response) => {
   try {
     const [cars] = await db.query<RowDataPacket[]>(
       `SELECT cars.*, models.name AS model_name, brands.name AS brand_name 
@@ -24,35 +24,32 @@ router.get('/cars', async (req: Request, res: Response, next: NextFunction) => {
   } catch (error: any) {
     console.error('[GET /cars] Error:', error.message);
     res.status(500).json({ error: 'Failed to fetch cars', details: error.message });
-    next(error);
   }
 });
 
-router.get('/brands', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/brands', async (req: Request, res: Response) => {
   try {
     const [brands] = await db.query<RowDataPacket[]>('SELECT name FROM brands');
     res.status(200).json(brands.map((brand: any) => brand.name));
   } catch (error: any) {
     console.error('[GET /brands] Error:', error.message);
     res.status(500).json({ error: 'Failed to fetch brands', details: error.message });
-    next(error);
   }
 });
 
-router.get('/years', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/years', async (req: Request, res: Response) => {
   try {
     const [years] = await db.query<RowDataPacket[]>('SELECT DISTINCT year FROM cars');
     res.status(200).json(years.map((year: any) => year.year.toString()));
   } catch (error: any) {
     console.error('[GET /years] Error:', error.message);
     res.status(500).json({ error: 'Failed to fetch years', details: error.message });
-    next(error);
   }
 });
 
 router.get('/cars/:id', getCarById);
 
-router.get('/reviews', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/reviews', async (req: Request, res: Response) => {
   try {
     const [reviews] = await db.query<RowDataPacket[]>(
       `SELECT reviews.*, users.email AS user_email, 
@@ -67,11 +64,10 @@ router.get('/reviews', async (req: Request, res: Response, next: NextFunction) =
   } catch (error: any) {
     console.error('[GET /reviews] Error:', error.message);
     res.status(500).json({ error: 'Failed to fetch reviews', details: error.message });
-    next(error);
   }
 });
 
-router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -105,11 +101,10 @@ router.post('/reviews', authMiddleware, async (req: AuthenticatedRequest, res: R
   } catch (error: any) {
     console.error('[POST /reviews] Error:', error.message);
     res.status(500).json({ error: 'Failed to create review', details: error.message });
-    next(error);
   }
 });
 
-router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -151,11 +146,10 @@ router.put('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res
   } catch (error: any) {
     console.error('[PUT /reviews/:id] Error:', error.message);
     res.status(500).json({ error: 'Failed to update review', details: error.message });
-    next(error);
   }
 });
 
-router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -183,11 +177,10 @@ router.delete('/reviews/:id', authMiddleware, async (req: AuthenticatedRequest, 
   } catch (error: any) {
     console.error('[DELETE /reviews/:id] Error:', error.message);
     res.status(500).json({ error: 'Failed to delete review', details: error.message });
-    next(error);
   }
 });
 
-router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -214,11 +207,10 @@ router.get('/bookings/my-bookings', authMiddleware, async (req: AuthenticatedReq
   } catch (error: any) {
     console.error('[GET /bookings/my-bookings] Error:', error.message);
     res.status(500).json({ error: 'Failed to fetch bookings', details: error.message });
-    next(error);
   }
 });
 
-router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) {
     console.log('[DELETE /bookings/:id] No user_id found');
     res.status(401).json({ error: 'User not authenticated' });
@@ -275,7 +267,6 @@ router.delete('/bookings/:id', authMiddleware, async (req: AuthenticatedRequest,
   } catch (error: any) {
     console.error('[DELETE /bookings/:id] Error:', error.message);
     res.status(500).json({ error: 'Failed to delete booking', details: error.message });
-    next(error);
   }
 });
 
@@ -287,7 +278,7 @@ router.get('/auth/dashboard', authMiddleware, adminMiddleware, getDashboardData)
 
 router.get('/auth/recent-activity', authMiddleware, adminMiddleware, getRecentActivity);
 
-router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) {
     res.status(401).json({ error: 'User not authenticated' });
     return;
@@ -329,7 +320,6 @@ router.post('/bookings', authMiddleware, async (req: AuthenticatedRequest, res: 
   } catch (error: any) {
     console.error('[POST /bookings] Error:', error.message);
     res.status(500).json({ error: 'Failed to create booking', details: error.message });
-    next(error);
   }
 });
 

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
-import { User, JwtPayload, AuthenticatedRequest } from '../types';
+import { User, AuthenticatedRequest } from '../types';
 
 interface RegisterRequestBody {
   name: string;
@@ -130,7 +130,7 @@ export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Respons
   }
 };
 
-export const getDashboardData = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const getDashboardData = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -157,11 +157,10 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response,
   } catch (error: any) {
     console.error('Error in getDashboardData:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
-    next(error);
   }
 };
 
-export const getRecentActivity = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const getRecentActivity = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const [logs] = await db.query<RowDataPacket[]>(
       'SELECT users.name, login_logs.role, login_logs.login_at FROM login_logs JOIN users ON login_logs.user_id = users.id ORDER BY login_logs.login_at DESC LIMIT 3'
@@ -174,7 +173,6 @@ export const getRecentActivity = async (req: AuthenticatedRequest, res: Response
   } catch (error: any) {
     console.error('Error in getRecentActivity:', error);
     res.status(500).json({ error: 'Failed to fetch recent activity' });
-    next(error);
   }
 };
 
@@ -187,7 +185,7 @@ function generateJwtToken(user: User): string {
     } else if (/^\d+[smhdwMy]$/.test(envExpiresIn)) {
       expiresIn = parseExpiresIn(envExpiresIn);
     } else {
-      console.warn('รูปแบบ JWT_EXPIRES_IN ไม่ถูกต้อง ใช้ค่าเริ่มต้น 3600 วินาที');
+      console.warn('Invalid JWT_EXPIRES_IN format, using default 3600 seconds');
     }
   }
 

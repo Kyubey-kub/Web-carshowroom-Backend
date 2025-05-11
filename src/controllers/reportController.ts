@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response } from 'express';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
-import { User, JwtPayload, AuthenticatedRequest } from '../types';
+import { AuthenticatedRequest } from '../types';
 
-export const getUserActivity = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const getUserActivity = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -22,11 +22,10 @@ export const getUserActivity = async (req: AuthenticatedRequest, res: Response, 
   } catch (error: any) {
     console.error('Error in getUserActivity:', error);
     res.status(500).json({ error: 'Failed to generate user activity report' });
-    next(error);
   }
 };
 
-export const getRegistrationTrends = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const getRegistrationTrends = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -45,6 +44,5 @@ export const getRegistrationTrends = async (req: AuthenticatedRequest, res: Resp
   } catch (error: any) {
     console.error('Error in getRegistrationTrends:', error);
     res.status(500).json({ error: 'Failed to generate registration trends report' });
-    next(error);
   }
 };

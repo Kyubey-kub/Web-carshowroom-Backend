@@ -1,10 +1,10 @@
-import { Response, NextFunction } from 'express';
+import { Response } from 'express';
 import db from '../config/db';
 import { RowDataPacket } from 'mysql2';
 import bcrypt from 'bcryptjs';
-import { AuthenticatedRequest, User, JwtPayload } from '../types';
+import { AuthenticatedRequest } from '../types';
 
-export const getUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const getUsers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -34,11 +34,10 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
   } catch (error: any) {
     console.error('Error in getUsers:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
-    next(error);
   }
 };
 
-export const deleteUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const deleteUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -69,11 +68,10 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response, next:
   } catch (error: any) {
     console.error('Error in deleteUser:', error);
     res.status(500).json({ error: 'Failed to delete user' });
-    next(error);
   }
 };
 
-export const getAdminEmail = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const getAdminEmail = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const [admins] = await db.query<RowDataPacket[]>(
       'SELECT email FROM users WHERE role = "admin" LIMIT 1'
@@ -88,11 +86,10 @@ export const getAdminEmail = async (req: AuthenticatedRequest, res: Response, ne
   } catch (error: any) {
     console.error('Error in getAdminEmail:', error);
     res.status(500).json({ error: 'Failed to fetch admin email' });
-    next(error);
   }
 };
 
-export const updateUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const updateUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -131,11 +128,10 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
   } catch (error: any) {
     console.error('Error in updateUser:', error);
     res.status(500).json({ error: 'Failed to update user' });
-    next(error);
   }
 };
 
-export const addUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const addUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -170,6 +166,5 @@ export const addUser = async (req: AuthenticatedRequest, res: Response, next: Ne
   } catch (error: any) {
     console.error('Error in addUser:', error);
     res.status(500).json({ error: 'Failed to add user' });
-    next(error);
   }
 };
