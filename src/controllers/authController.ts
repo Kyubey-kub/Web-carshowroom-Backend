@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
-import db from '../config/db';
+import db from '..//config/db';
 import { RowDataPacket } from 'mysql2';
 import { User, AuthenticatedRequest } from '../types';
 
@@ -43,7 +43,7 @@ function parseExpiresIn(value: string): number {
   }
 }
 
-export const register = async (req: Request<{}, {}, RegisterRequestBody>, res: Response, next: NextFunction): Promise<void> => {
+export const register = async (req: Request<{}, {}, RegisterRequestBody>, res: Response): Promise<void> => {
   const { name, email, password, role } = req.body;
 
   if (!name || !email || !password) {
@@ -83,11 +83,10 @@ export const register = async (req: Request<{}, {}, RegisterRequestBody>, res: R
   } catch (error: any) {
     console.error('Error in register:', error);
     res.status(500).json({ error: 'Failed to register user' });
-    next(error);
   }
 };
 
-export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Response, next: NextFunction): Promise<void> => {
+export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Response): Promise<void> => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -126,7 +125,6 @@ export const login = async (req: Request<{}, {}, LoginRequestBody>, res: Respons
   } catch (error: any) {
     console.error('Error in login:', error);
     res.status(500).json({ error: 'Failed to login' });
-    next(error);
   }
 };
 

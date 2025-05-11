@@ -11,7 +11,6 @@ import { AuthenticatedRequest } from '../types';
 
 const router = Router();
 
-// Routes that don't require authMiddleware
 router.get('/cars', async (req: Request, res: Response) => {
   try {
     const [cars] = await db.query<RowDataPacket[]>(
